@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+env/
+.env
+
+# Large artifacts / local data
+audio_clips/
+vosk-model-small-hi-0.22/
+models/
+*.db
+*.wav
+
+# Editor
+.vscode/
+.idea/
+

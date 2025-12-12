@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Adaptive Tutor</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: rgba(255,255,255,0.05);
+            --border: rgba(255,255,255,0.08);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+        }
+        body { font-family: "Inter","Segoe UI",Arial,sans-serif; background: var(--bg); margin: 0; padding: 28px; color: var(--text); }
+        .wrap { max-width: 1100px; margin: auto; }
+        nav a { margin-right: 12px; color: var(--text); text-decoration: none; }
+        h1 { margin-bottom: 6px; }
+        .muted { color: var(--muted); font-size: 13px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+        .card { background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.35); }
+        .pill { display: inline-block; padding: 6px 8px; background: rgba(56,189,248,0.16); color: var(--text); border-radius: 12px; margin: 3px; font-size: 13px; border: 1px solid rgba(56,189,248,0.3); cursor: pointer; }
+        .pill.disabled { opacity: 0.4; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <nav>
+            <a href="/">Home</a>
+            <a href="/transcription">Transcription</a>
+            <a href="/dataset">Dataset</a>
+            <a href="/validation_page">Validation</a>
+        </nav>
+        <h1>Adaptive Tutor</h1>
+        <p class="muted">Tracks vocabulary, OOV words, challenges, and lessons.</p>
+        <div class="grid">
+            <div class="card">
+                <h3>New Words (7 days)</h3>
+                <div id="newWords" class="muted">Loading…</div>
+            </div>
+            <div class="card">
+                <h3>Vocabulary Bank</h3>
+                <div id="vocabList" class="muted">Loading…</div>
+            </div>
+            <div class="card">
+                <h3>Out-of-Vocabulary</h3>
+                <div id="oovList" class="muted">Loading…</div>
+            </div>
+            <div class="card">
+                <h3>Daily Challenge</h3>
+                <div id="challenge" class="muted">Loading…</div>
+            </div>
+            <div class="card">
+                <h3>Personalized Lesson</h3>
+                <div id="lesson" class="muted">Loading…</div>
+            </div>
+            <div class="card">
+                <h3>Learning Stats</h3>
+                <div id="stats" class="muted">Loading…</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let learnedWords = new Set(JSON.parse(localStorage.getItem("learned_words") || "[]"));
+
+        async function fetchNewWords() {
+            const res = await fetch("/chatbot/new_words?days=7");
+            const data = await res.json();
+            const box = document.getElementById("newWords");
+            const entries = [];
+            Object.keys(data.by_date || {}).forEach(day => {
+                const words = (data.by_date[day] || []).map(w => {
+                    const key = `${w.language}:${w.word}`;
+                    const disabled = learnedWords.has(key) ? "disabled" : "";
+                    return `<span class="pill ${disabled}" data-key="${key}" onclick="markLearned('${w.word}','${w.language}', this)">${w.word} (${w.language})</span>`;
+                }).join("");
+                entries.push(`<div><strong>${day}</strong>: ${words}</div>`);
+            });
+            box.innerHTML = entries.join("") || "No new words yet.";
+        }
+
+        async function fetchVocab() {
+            const res = await fetch("/chatbot/vocabulary?limit=50");
+            const data = await res.json();
+            const box = document.getElementById("vocabList");
+            box.innerHTML = data.items.map(w => {
+                const key = `${w.language}:${w.word}`;
+                const disabled = learnedWords.has(key) ? "disabled" : "";
+                return `<span class="pill ${disabled}" data-key="${key}" onclick="markLearned('${w.word}','${w.language}', this)">${w.word} (${w.language})</span>`;
+            }).join("") || "Empty.";
+        }
+
+        async function fetchOOV() {
+            const res = await fetch("/chatbot/oov");
+            const data = await res.json();
+            const box = document.getElementById("oovList");
+            box.innerHTML = data.items.map(w => `<span class="pill" title="Seen ${w.occurrences}x">${w.word} (${w.language})</span>`).join("") || "None.";
+        }
+
+        async function markLearned(word, lang, el) {
+            const key = `${lang}:${word}`;
+            if (learnedWords.has(key)) return;
+            await fetch("/chatbot/record_performance", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    user: "default_user",
+                    word,
+                    lang,
+                    lesson_type: "vocabulary",
+                    response_time: 0.5,
+                    is_correct: true,
+                    difficulty_level: "beginner"
+                })
+            });
+            fetchStats();
+            fetchVocab();
+            learnedWords.add(key);
+            localStorage.setItem("learned_words", JSON.stringify([...learnedWords]));
+            if (el) el.classList.add("disabled");
+        }
+
+        async function fetchChallenge() {
+            const res = await fetch("/chatbot/daily_challenge");
+            const data = await res.json();
+            const c = data.challenge || {};
+            document.getElementById("challenge").innerHTML = `<div><strong>${c.title || "Challenge"}</strong></div><div>Goal: ${c.target || "-"} | XP: ${c.xp_reward || 0}</div>`;
+        }
+
+        async function fetchLesson() {
+            const res = await fetch("/chatbot/lesson");
+            const data = await res.json();
+            const lesson = data.lesson || {};
+            document.getElementById("lesson").innerHTML = `<div><strong>${lesson.title || "Lesson"}</strong></div><div>${lesson.adaptive_note || lesson.level || ""}</div>`;
+        }
+
+        async function fetchStats() {
+            const res = await fetch("/chatbot/stats");
+            const data = await res.json();
+            const stats = data.stats || {};
+            const lines = Object.keys(stats).map(lang => {
+                const s = stats[lang];
+                return `<div><strong>${lang}</strong>: level ${s.level || s[1] || "beginner"}, XP ${s.total_xp || s.xp || 0}, streak ${s.streak_days || s.streak || 0}d</div>`;
+            });
+            document.getElementById("stats").innerHTML = lines.join("") || "No stats yet.";
+        }
+
+        function refresh() {
+            fetchNewWords();
+            fetchVocab();
+            fetchOOV();
+            fetchChallenge();
+            fetchLesson();
+            fetchStats();
+        }
+
+        refresh();
+        setInterval(refresh, 10000);
+    </script>
+</body>
+</html>
+

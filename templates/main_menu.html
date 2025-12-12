@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Transcription System</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: rgba(255,255,255,0.05);
+            --border: rgba(255,255,255,0.08);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+        }
+        body { font-family: "Inter","Segoe UI",Arial,sans-serif; margin: 0; padding: 28px; background: radial-gradient(circle at 20% 20%, rgba(56,189,248,0.15), transparent 26%), radial-gradient(circle at 80% 0%, rgba(168,85,247,0.12), transparent 28%), var(--bg); min-height: 100vh; color: var(--text); }
+        .container { max-width: 1040px; margin: 0 auto; text-align: center; }
+        h1 { color: var(--text); font-size: 2.6em; margin-bottom: 6px; }
+        .muted { color: var(--muted); }
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 24px; }
+        .menu-item { background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); padding: 24px; border-radius: 14px; box-shadow: 0 16px 36px rgba(0,0,0,0.35); transition: transform 0.2s ease, box-shadow 0.2s ease; text-decoration: none; color: var(--text); border: 1px solid var(--border); }
+        .menu-item:hover { transform: translateY(-4px); box-shadow: 0 18px 44px rgba(0,0,0,0.45); }
+        .menu-item h3 { color: var(--accent); margin-bottom: 10px; font-size: 1.2em; }
+        .menu-item p { color: var(--muted); line-height: 1.5; margin: 0; }
+        .icon { font-size: 2.4em; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Audio Transcription System</h1>
+        <p class="muted" style="font-size: 1.05em;">Choose a feature to explore</p>
+        
+        <div class="menu-grid">
+            <a href="/transcription" class="menu-item">
+                <div class="icon">🎙️</div>
+                <h3>Real-Time Transcription</h3>
+                <p>Start/stop audio recording and see live transcription in multiple languages (English, Spanish, Hindi)</p>
+            </a>
+            <a href="/dashboard" class="menu-item">
+                <div class="icon">📊</div>
+                <h3>Dashboard</h3>
+                <p>XP, stats, fresh lessons, 3 words to learn, and progress overview</p>
+            </a>
+            
+            <a href="/validation_page" class="menu-item">
+                <div class="icon">✅</div>
+                <h3>Word Validation</h3>
+                <p>Validate words from your speech, check meanings, and discover new words with online dictionary</p>
+            </a>
+            
+            <a href="/dataset" class="menu-item">
+                <div class="icon">📁</div>
+                <h3>Dataset</h3>
+                <p>See the latest stored transcriptions with local-first data</p>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

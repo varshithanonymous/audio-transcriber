@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Word Validation</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: rgba(255,255,255,0.05);
+            --border: rgba(255,255,255,0.08);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+        }
+        body { font-family: "Inter","Segoe UI",Arial,sans-serif; background: var(--bg); margin: 0; padding: 28px; color: var(--text); }
+        .wrap { max-width: 900px; margin: auto; }
+        .card { background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.35); margin-bottom: 12px; }
+        .pill { display: inline-block; padding: 6px 8px; background: rgba(56,189,248,0.16); color: var(--text); border-radius: 12px; margin: 3px; font-size: 13px; cursor: pointer; border: 1px solid rgba(56,189,248,0.3); }
+        .pill.disabled { opacity: 0.4; pointer-events: none; }
+        input, select, button { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); }
+        button.primary { background: var(--accent); color: #0f172a; border-color: var(--accent); cursor: pointer; }
+        .muted { color: var(--muted); }
+        nav a { margin-right: 12px; color: var(--text); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <nav>
+            <a href="/">Home</a>
+            <a href="/transcription">Transcription</a>
+            <a href="/dataset">Dataset</a>
+            <a href="/tutor">Tutor</a>
+        </nav>
+        <h1>Word Validation</h1>
+        <p class="muted">Uses online dictionary only when internet is available; otherwise shows offline status.</p>
+        <div class="card">
+            <div id="onlineStatus" class="muted">Checking online status…</div>
+            <div style="margin:10px 0;">
+                <input id="wordInput" placeholder="Type a word">
+                <select id="wordLang">
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="hi">Hindi</option>
+                </select>
+                <button class="primary" onclick="validateWord()">Validate</button>
+            </div>
+            <div id="validateResult" class="muted"></div>
+        </div>
+        <div class="card">
+            <h3>Recent New Words (tap to validate)</h3>
+            <div id="validateWords" class="muted">Loading…</div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchOnlineStatus() {
+            const online = navigator.onLine;
+            const statusEl = document.getElementById("onlineStatus");
+            statusEl.innerText = online ? "Online: validation will use dictionary" : "Offline: validation paused";
+            return online;
+        }
+
+        let learnedWords = new Set(JSON.parse(localStorage.getItem("learned_words") || "[]"));
+
+        async function populateValidateList() {
+            const res = await fetch("/chatbot/new_words?days=7");
+            const data = await res.json();
+            const box = document.getElementById("validateWords");
+            const words = [];
+            Object.values(data.by_date || {}).forEach(list => list.forEach(w => words.push(w)));
+            box.innerHTML = words.slice(0, 50).map(w => {
+                const key = `${w.language}:${w.word}`;
+                const disabled = learnedWords.has(key) ? "disabled" : "";
+                return `<span class="pill ${disabled}" data-key="${key}" onclick="if(!learnedWords.has('${key}')){document.getElementById('wordInput').value='${w.word}'; document.getElementById('wordLang').value='${w.language}'; validateWord(); markLearned('${w.word}','${w.language}', this);}">${w.word} (${w.language})</span>`;
+            }).join("") || "No new words yet.";
+        }
+
+        async function validateWord() {
+            const online = await fetchOnlineStatus();
+            const resultEl = document.getElementById("validateResult");
+            if (!online) {
+                resultEl.innerText = "Offline: cannot validate right now.";
+                return;
+            }
+            const word = document.getElementById("wordInput").value.trim();
+            const lang = document.getElementById("wordLang").value;
+            if (!word) { resultEl.innerText = "Enter a word first."; return; }
+            const res = await fetch(`/validate_word?word=${encodeURIComponent(word)}&lang=${lang}`);
+            const data = await res.json();
+            resultEl.innerText = data.is_valid ? `Valid: ${data.meaning || 'meaning fetched'}` : "Not validated or unknown.";
+        }
+
+        fetchOnlineStatus();
+        populateValidateList();
+        window.addEventListener('online', fetchOnlineStatus);
+        window.addEventListener('offline', fetchOnlineStatus);
+
+        async function markLearned(word, lang, el) {
+            const key = `${lang}:${word}`;
+            if (learnedWords.has(key)) return;
+            await fetch("/chatbot/record_performance", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    user: "default_user",
+                    word,
+                    lang,
+                    lesson_type: "vocabulary",
+                    response_time: 0.5,
+                    is_correct: true,
+                    difficulty_level: "beginner"
+                })
+            });
+            learnedWords.add(key);
+            localStorage.setItem("learned_words", JSON.stringify([...learnedWords]));
+            if (el) el.classList.add("disabled");
+        }
+    </script>
+</body>
+</html>
+

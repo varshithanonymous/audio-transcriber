@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dataset</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: rgba(255,255,255,0.05);
+            --border: rgba(255,255,255,0.08);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+        }
+        body { font-family: "Inter","Segoe UI",Arial,sans-serif; background: var(--bg); margin: 0; padding: 28px; color: var(--text); }
+        .wrap { max-width: 1100px; margin: auto; }
+        .card { background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.35); }
+        .entry { padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .muted { color: var(--muted); }
+        nav a { margin-right: 12px; color: var(--text); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <nav>
+            <a href="/">Home</a>
+            <a href="/transcription">Transcription</a>
+            <a href="/tutor">Tutor</a>
+            <a href="/validation_page">Validation</a>
+        </nav>
+        <h1>Full Dataset</h1>
+        <p class="muted">Latest 200 items stored locally.</p>
+        <div class="card" id="dataset">Loading…</div>
+    </div>
+
+    <script>
+        async function loadData() {
+            const res = await fetch("/data?lang=all&limit=200");
+            const data = await res.json();
+            const box = document.getElementById("dataset");
+            box.innerHTML = data.map(item => `<div class="entry"><strong>${item.timestamp}</strong> [${item.language}] — ${item.text}</div>`).join("") || "No data yet.";
+        }
+        loadData();
+    </script>
+</body>
+</html>
+
