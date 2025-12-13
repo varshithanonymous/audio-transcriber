@@ -78,15 +78,42 @@
             const online = await fetchOnlineStatus();
             const resultEl = document.getElementById("validateResult");
             if (!online) {
-                resultEl.innerText = "Offline: cannot validate right now.";
+                const lang = document.getElementById("wordLang").value;
+                const offlineMsg = {
+                    'en': 'Offline: cannot validate right now.',
+                    'es': 'Sin conexión: no se puede validar en este momento.',
+                    'hi': 'ऑफ़लाइन: अभी सत्यापन नहीं कर सकते।'
+                };
+                resultEl.innerText = offlineMsg[lang] || offlineMsg['en'];
                 return;
             }
             const word = document.getElementById("wordInput").value.trim();
             const lang = document.getElementById("wordLang").value;
-            if (!word) { resultEl.innerText = "Enter a word first."; return; }
+            if (!word) { 
+                const enterMsg = {
+                    'en': 'Enter a word first.',
+                    'es': 'Ingrese una palabra primero.',
+                    'hi': 'पहले एक शब्द दर्ज करें।'
+                };
+                resultEl.innerText = enterMsg[lang] || enterMsg['en'];
+                return;
+            }
+            resultEl.innerText = "Validating...";
             const res = await fetch(`/validate_word?word=${encodeURIComponent(word)}&lang=${lang}`);
             const data = await res.json();
-            resultEl.innerText = data.is_valid ? `Valid: ${data.meaning || 'meaning fetched'}` : "Not validated or unknown.";
+            // Use the message from server (in detected language) or fallback
+            if (data.message) {
+                resultEl.innerText = data.message;
+            } else if (data.is_valid) {
+                resultEl.innerText = data.meaning || 'Valid word';
+            } else {
+                const invalidMsg = {
+                    'en': 'Not validated or unknown.',
+                    'es': 'No validado o desconocido.',
+                    'hi': 'सत्यापित नहीं या अज्ञात।'
+                };
+                resultEl.innerText = invalidMsg[lang] || invalidMsg['en'];
+            }
         }
 
         fetchOnlineStatus();

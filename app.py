@@ -45,6 +45,9 @@ class WordValidator:
         if not self.is_online(): return None
         try:
             import requests
+            import urllib.parse
+            
+            # English: Use dictionary API
             if language == 'en':
                 url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
                 response = requests.get(url, timeout=5)
@@ -52,9 +55,84 @@ class WordValidator:
                     data = response.json()
                     if data and len(data) > 0:
                         meanings = data[0].get('meanings', [])
-                        if meanings: return meanings[0].get('definitions', [{}])[0].get('definition', '')
+                        if meanings: 
+                            definition = meanings[0].get('definitions', [{}])[0].get('definition', '')
+                            return f"English: {definition}"
+            
+            # Spanish: Use MyMemory Translation API + WordReference
+            elif language == 'es':
+                # Try WordReference API first (free, no key needed)
+                try:
+                    word_encoded = urllib.parse.quote(word)
+                    url = f"https://api.wordreference.com/0.8/json/esen/{word_encoded}"
+                    response = requests.get(url, timeout=5)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if 'term0' in data:
+                            # Extract first translation
+                            term = data.get('term0', {})
+                            entries = term.get('PrincipalTranslations', {})
+                            if entries:
+                                first_entry = list(entries.values())[0] if entries else None
+                                if first_entry and 'OriginalTerm' in first_entry:
+                                    meaning = first_entry.get('OriginalTerm', {}).get('term', '')
+                                    if meaning:
+                                        return f"Español: {meaning}"
+                except:
+                    pass
+                
+                # Fallback: Use MyMemory Translation API
+                try:
+                    url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(word)}&langpair=es|en"
+                    response = requests.get(url, timeout=5)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('responseStatus') == 200:
+                            translated = data.get('responseData', {}).get('translatedText', '')
+                            if translated and translated.lower() != word.lower():
+                                # Get English meaning of translated word
+                                en_url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{urllib.parse.quote(translated)}"
+                                en_resp = requests.get(en_url, timeout=5)
+                                if en_resp.status_code == 200:
+                                    en_data = en_resp.json()
+                                    if en_data and len(en_data) > 0:
+                                        meanings = en_data[0].get('meanings', [])
+                                        if meanings:
+                                            definition = meanings[0].get('definitions', [{}])[0].get('definition', '')
+                                            return f"Español: {word} → English: {translated} ({definition})"
+                                return f"Español: {word} → English: {translated}"
+                except:
+                    pass
+            
+            # Hindi: Use translation API
+            elif language == 'hi':
+                try:
+                    # Use MyMemory Translation API to translate Hindi to English
+                    url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(word)}&langpair=hi|en"
+                    response = requests.get(url, timeout=5)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('responseStatus') == 200:
+                            translated = data.get('responseData', {}).get('translatedText', '')
+                            if translated and translated.lower() != word.lower():
+                                # Get English meaning of translated word
+                                en_url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{urllib.parse.quote(translated)}"
+                                en_resp = requests.get(en_url, timeout=5)
+                                if en_resp.status_code == 200:
+                                    en_data = en_resp.json()
+                                    if en_data and len(en_data) > 0:
+                                        meanings = en_data[0].get('meanings', [])
+                                        if meanings:
+                                            definition = meanings[0].get('definitions', [{}])[0].get('definition', '')
+                                            return f"हिंदी: {word} → English: {translated} ({definition})"
+                                return f"हिंदी: {word} → English: {translated}"
+                except:
+                    pass
+            
             return None
-        except: return None
+        except Exception as e:
+            print(f"Validation error: {e}")
+            return None
     def validate_and_store_word(self, user_id, word, language):
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
@@ -62,7 +140,11 @@ class WordValidator:
         result = cursor.fetchone()
         if result:
             conn.close()
-            return {'cached': True, 'meaning': result[0], 'is_valid': bool(result[1])}
+            meaning = result[0]
+            is_valid = bool(result[1])
+            # Return response in the detected language
+            response_msg = self._get_validation_message(language, word, meaning, is_valid, True)
+            return {'cached': True, 'meaning': meaning, 'is_valid': is_valid, 'message': response_msg}
         meaning = self.get_word_meaning(word, language)
         is_valid = meaning is not None
         import time
@@ -70,7 +152,27 @@ class WordValidator:
         cursor.execute("INSERT OR REPLACE INTO validated_words (user_id, word, language, meaning, is_valid, timestamp) VALUES (?, ?, ?, ?, ?, ?)", (user_id, word.lower(), language, meaning or '', int(is_valid), timestamp))
         conn.commit()
         conn.close()
-        return {'cached': False, 'meaning': meaning, 'is_valid': is_valid}
+        response_msg = self._get_validation_message(language, word, meaning, is_valid, False)
+        return {'cached': False, 'meaning': meaning, 'is_valid': is_valid, 'message': response_msg}
+    
+    def _get_validation_message(self, language, word, meaning, is_valid, cached):
+        """Return validation message in the detected language"""
+        if language == 'en':
+            if is_valid:
+                return f"✓ Valid word: {word}. {meaning}" if meaning else f"✓ Valid word: {word}"
+            else:
+                return f"✗ Word '{word}' not found in dictionary"
+        elif language == 'es':
+            if is_valid:
+                return f"✓ Palabra válida: {word}. {meaning}" if meaning else f"✓ Palabra válida: {word}"
+            else:
+                return f"✗ La palabra '{word}' no se encontró en el diccionario"
+        elif language == 'hi':
+            if is_valid:
+                return f"✓ वैध शब्द: {word}. {meaning}" if meaning else f"✓ वैध शब्द: {word}"
+            else:
+                return f"✗ शब्द '{word}' शब्दकोश में नहीं मिला"
+        return f"Validation result: {word} - {'Valid' if is_valid else 'Invalid'}"
     def get_user_words(self, user_id, language=None):
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()

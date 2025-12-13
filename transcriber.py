@@ -15,11 +15,18 @@ MODEL_PATHS = {
 }
 
 recognizers = {}
+print("Loading Vosk models...", flush=True)
 for lang, path in MODEL_PATHS.items():
     if not os.path.exists(path):
-        raise FileNotFoundError(f"Download model for {lang} from: https://alphacephei.com/vosk/models")
-    model = vosk.Model(path)
-    recognizers[lang] = vosk.KaldiRecognizer(model, 16000)
+        raise FileNotFoundError(f"Model directory not found for {lang}: {path}\nDownload model from: https://alphacephei.com/vosk/models")
+    try:
+        print(f"  Loading {lang.upper()} model from {path}...", flush=True)
+        model = vosk.Model(path)
+        recognizers[lang] = vosk.KaldiRecognizer(model, 16000)
+        print(f"  ✓ {lang.upper()} model loaded successfully", flush=True)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load {lang} model from {path}: {e}\nMake sure the model files are properly extracted.")
+print(f"✓ All {len(recognizers)} models loaded successfully!", flush=True)
 
 DB_FILE = "transcriptions.db"
 AUDIO_DIR = "audio_clips"
@@ -62,6 +69,9 @@ def detect_language_offline(text):
 def validate_word_online(user_id, word, language):
     try:
         import requests
+        import urllib.parse
+        
+        # English: Use dictionary API
         if language == 'en':
             url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
             response = requests.get(url, timeout=3)
@@ -79,7 +89,74 @@ def validate_word_online(user_id, word, language):
                         conn_word.commit()
                         conn_word.close()
                         return meaning
-    except: pass
+        
+        # Spanish: Use translation API
+        elif language == 'es':
+            try:
+                # Try WordReference API
+                word_encoded = urllib.parse.quote(word)
+                url = f"https://api.wordreference.com/0.8/json/esen/{word_encoded}"
+                response = requests.get(url, timeout=3)
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'term0' in data:
+                        term = data.get('term0', {})
+                        entries = term.get('PrincipalTranslations', {})
+                        if entries:
+                            first_entry = list(entries.values())[0] if entries else None
+                            if first_entry and 'OriginalTerm' in first_entry:
+                                meaning = first_entry.get('OriginalTerm', {}).get('term', '')
+                                if meaning:
+                                    conn_word = sqlite3.connect("word_database.db")
+                                    conn_word.execute("CREATE TABLE IF NOT EXISTS validated_words (user_id TEXT, word TEXT, language TEXT, meaning TEXT, timestamp TEXT)")
+                                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                                    conn_word.execute("INSERT INTO validated_words VALUES (?, ?, ?, ?, ?)", (user_id, word.lower(), language, f"Español: {meaning}", timestamp))
+                                    conn_word.commit()
+                                    conn_word.close()
+                                    return f"Español: {meaning}"
+            except:
+                pass
+            
+            # Fallback: MyMemory Translation
+            try:
+                url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(word)}&langpair=es|en"
+                response = requests.get(url, timeout=3)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('responseStatus') == 200:
+                        translated = data.get('responseData', {}).get('translatedText', '')
+                        if translated and translated.lower() != word.lower():
+                            conn_word = sqlite3.connect("word_database.db")
+                            conn_word.execute("CREATE TABLE IF NOT EXISTS validated_words (user_id TEXT, word TEXT, language TEXT, meaning TEXT, timestamp TEXT)")
+                            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                            conn_word.execute("INSERT INTO validated_words VALUES (?, ?, ?, ?, ?)", (user_id, word.lower(), language, f"Español: {word} → {translated}", timestamp))
+                            conn_word.commit()
+                            conn_word.close()
+                            return f"Español: {word} → {translated}"
+            except:
+                pass
+        
+        # Hindi: Use translation API
+        elif language == 'hi':
+            try:
+                url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(word)}&langpair=hi|en"
+                response = requests.get(url, timeout=3)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('responseStatus') == 200:
+                        translated = data.get('responseData', {}).get('translatedText', '')
+                        if translated and translated.lower() != word.lower():
+                            conn_word = sqlite3.connect("word_database.db")
+                            conn_word.execute("CREATE TABLE IF NOT EXISTS validated_words (user_id TEXT, word TEXT, language TEXT, meaning TEXT, timestamp TEXT)")
+                            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                            conn_word.execute("INSERT INTO validated_words VALUES (?, ?, ?, ?, ?)", (user_id, word.lower(), language, f"हिंदी: {word} → {translated}", timestamp))
+                            conn_word.commit()
+                            conn_word.close()
+                            return f"हिंदी: {word} → {translated}"
+            except:
+                pass
+    except Exception as e:
+        print(f"Validation error: {e}", flush=True)
     return None
 
 def save_transcript(text, lang, audio_path=None):
