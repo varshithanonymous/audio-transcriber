@@ -23,10 +23,10 @@ for lang, path in MODEL_PATHS.items():
         print(f"  Loading {lang.upper()} model from {path}...", flush=True)
         model = vosk.Model(path)
         recognizers[lang] = vosk.KaldiRecognizer(model, 16000)
-        print(f"  ✓ {lang.upper()} model loaded successfully", flush=True)
+        print(f"  [OK] {lang.upper()} model loaded successfully", flush=True)
     except Exception as e:
         raise RuntimeError(f"Failed to load {lang} model from {path}: {e}\nMake sure the model files are properly extracted.")
-print(f"✓ All {len(recognizers)} models loaded successfully!", flush=True)
+print(f"[OK] All {len(recognizers)} models loaded successfully!", flush=True)
 
 DB_FILE = "transcriptions.db"
 AUDIO_DIR = "audio_clips"
@@ -83,9 +83,9 @@ def validate_word_online(user_id, word, language):
                         meaning = meanings[0].get('definitions', [{}])[0].get('definition', '')
                         # Store in database
                         conn_word = sqlite3.connect("word_database.db")
-                        conn_word.execute("CREATE TABLE IF NOT EXISTS validated_words (user_id TEXT, word TEXT, language TEXT, meaning TEXT, timestamp TEXT)")
+                        conn_word.execute("CREATE TABLE IF NOT EXISTS validated_words (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, word TEXT, language TEXT, meaning TEXT, is_valid INTEGER, timestamp TEXT, UNIQUE(user_id, word, language))")
                         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                        conn_word.execute("INSERT INTO validated_words VALUES (?, ?, ?, ?, ?)", (user_id, word.lower(), language, meaning, timestamp))
+                        conn_word.execute("INSERT OR REPLACE INTO validated_words (user_id, word, language, meaning, is_valid, timestamp) VALUES (?, ?, ?, ?, ?, ?)", (user_id, word.lower(), language, meaning, 1, timestamp))
                         conn_word.commit()
                         conn_word.close()
                         return meaning
@@ -108,9 +108,9 @@ def validate_word_online(user_id, word, language):
                                 meaning = first_entry.get('OriginalTerm', {}).get('term', '')
                                 if meaning:
                                     conn_word = sqlite3.connect("word_database.db")
-                                    conn_word.execute("CREATE TABLE IF NOT EXISTS validated_words (user_id TEXT, word TEXT, language TEXT, meaning TEXT, timestamp TEXT)")
+                                    conn_word.execute("CREATE TABLE IF NOT EXISTS validated_words (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, word TEXT, language TEXT, meaning TEXT, is_valid INTEGER, timestamp TEXT, UNIQUE(user_id, word, language))")
                                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                                    conn_word.execute("INSERT INTO validated_words VALUES (?, ?, ?, ?, ?)", (user_id, word.lower(), language, f"Español: {meaning}", timestamp))
+                                    conn_word.execute("INSERT OR REPLACE INTO validated_words (user_id, word, language, meaning, is_valid, timestamp) VALUES (?, ?, ?, ?, ?, ?)", (user_id, word.lower(), language, f"Español: {meaning}", 1, timestamp))
                                     conn_word.commit()
                                     conn_word.close()
                                     return f"Español: {meaning}"
@@ -127,9 +127,9 @@ def validate_word_online(user_id, word, language):
                         translated = data.get('responseData', {}).get('translatedText', '')
                         if translated and translated.lower() != word.lower():
                             conn_word = sqlite3.connect("word_database.db")
-                            conn_word.execute("CREATE TABLE IF NOT EXISTS validated_words (user_id TEXT, word TEXT, language TEXT, meaning TEXT, timestamp TEXT)")
+                            conn_word.execute("CREATE TABLE IF NOT EXISTS validated_words (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, word TEXT, language TEXT, meaning TEXT, is_valid INTEGER, timestamp TEXT, UNIQUE(user_id, word, language))")
                             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                            conn_word.execute("INSERT INTO validated_words VALUES (?, ?, ?, ?, ?)", (user_id, word.lower(), language, f"Español: {word} → {translated}", timestamp))
+                            conn_word.execute("INSERT OR REPLACE INTO validated_words (user_id, word, language, meaning, is_valid, timestamp) VALUES (?, ?, ?, ?, ?, ?)", (user_id, word.lower(), language, f"Español: {word} → {translated}", 1, timestamp))
                             conn_word.commit()
                             conn_word.close()
                             return f"Español: {word} → {translated}"
@@ -147,9 +147,9 @@ def validate_word_online(user_id, word, language):
                         translated = data.get('responseData', {}).get('translatedText', '')
                         if translated and translated.lower() != word.lower():
                             conn_word = sqlite3.connect("word_database.db")
-                            conn_word.execute("CREATE TABLE IF NOT EXISTS validated_words (user_id TEXT, word TEXT, language TEXT, meaning TEXT, timestamp TEXT)")
+                            conn_word.execute("CREATE TABLE IF NOT EXISTS validated_words (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, word TEXT, language TEXT, meaning TEXT, is_valid INTEGER, timestamp TEXT, UNIQUE(user_id, word, language))")
                             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                            conn_word.execute("INSERT INTO validated_words VALUES (?, ?, ?, ?, ?)", (user_id, word.lower(), language, f"हिंदी: {word} → {translated}", timestamp))
+                            conn_word.execute("INSERT OR REPLACE INTO validated_words (user_id, word, language, meaning, is_valid, timestamp) VALUES (?, ?, ?, ?, ?, ?)", (user_id, word.lower(), language, f"हिंदी: {word} → {translated}", 1, timestamp))
                             conn_word.commit()
                             conn_word.close()
                             return f"हिंदी: {word} → {translated}"
@@ -207,7 +207,7 @@ def transcribe_loop():
         with sd.RawInputStream(samplerate=16000, blocksize=8000,
                                dtype="int16", channels=1,
                                callback=audio_callback):
-            print("🎤 Listening... (EN, ES, HI + offline detection + validation)")
+            print("[MIC] Listening... (EN, ES, HI + offline detection + validation)")
             is_listening = True
             while not stop_event.is_set():
                 data = q.get()
@@ -224,7 +224,7 @@ def transcribe_loop():
                             final_lang = detected_lang if detected_lang != 'unknown' else lang
 
                             audio_path = save_audio_chunk(data, final_lang)
-                            print(f"[{final_lang.upper()}] {text}  🎵 saved {audio_path}")
+                            print(f"[{final_lang.upper()}] {text}  [AUDIO] saved {audio_path}")
                             save_transcript(text, final_lang, audio_path)
     except Exception as e:
         print(f"Audio error: {e}")

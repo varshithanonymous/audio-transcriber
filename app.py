@@ -226,6 +226,100 @@ def tutor_page():
 def validation_page():
     return render_template("validation.html")
 
+@app.route("/validation")
+def validation_redirect():
+    return render_template("validation.html")
+
+@app.route("/language")
+def language_page():
+    return render_template("language_detection.html")
+
+@app.route("/api/get_new_words")
+def get_new_words():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT text FROM transcripts ORDER BY id DESC LIMIT 10")
+    rows = cursor.fetchall()
+    
+    all_words = set()
+    for row in rows:
+        words = row[0].lower().split()
+        for word in words:
+            clean_word = ''.join(c for c in word if c.isalpha())
+            if len(clean_word) > 2:
+                all_words.add(clean_word)
+    
+    validated_conn = sqlite3.connect("word_database.db")
+    validated_cursor = validated_conn.cursor()
+    new_words = []
+    
+    for word in all_words:
+        validated_cursor.execute("SELECT word FROM validated_words WHERE word=?", (word,))
+        if not validated_cursor.fetchone():
+            new_words.append(word)
+    
+    validated_conn.close()
+    conn.close()
+    return jsonify({"words": list(new_words)[:20]})
+
+@app.route("/api/get_all_words")
+def get_all_validated_words():
+    conn = sqlite3.connect("word_database.db")
+    cursor = conn.cursor()
+    
+    # Check if table exists and get column info
+    cursor.execute("PRAGMA table_info(validated_words)")
+    columns = [col[1] for col in cursor.fetchall()]
+    
+    if 'timestamp' in columns and 'is_valid' in columns:
+        cursor.execute("SELECT word, language, meaning, is_valid, timestamp FROM validated_words ORDER BY timestamp DESC")
+        rows = cursor.fetchall()
+        result = [{"word": r[0], "language": r[1] or "EN", "meaning": r[2], "is_valid": bool(r[3]), "timestamp": r[4]} for r in rows]
+    else:
+        # Fallback for older table structure
+        cursor.execute("SELECT word, language, meaning FROM validated_words ORDER BY rowid DESC")
+        rows = cursor.fetchall()
+        import time
+        current_time = time.strftime("%Y-%m-%d %H:%M:%S")
+        result = [{"word": r[0], "language": r[1] or "EN", "meaning": r[2], "is_valid": True, "timestamp": current_time} for r in rows]
+    
+    conn.close()
+    return jsonify(result)
+
+@app.route("/download/validations")
+def download_validations():
+    conn = sqlite3.connect("word_database.db")
+    cursor = conn.cursor()
+    
+    # Check table structure
+    cursor.execute("PRAGMA table_info(validated_words)")
+    columns = [col[1] for col in cursor.fetchall()]
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Word", "Language", "Status", "Meaning", "Timestamp"])
+    
+    if 'timestamp' in columns and 'is_valid' in columns:
+        cursor.execute("SELECT word, language, meaning, is_valid, timestamp FROM validated_words ORDER BY timestamp DESC")
+        rows = cursor.fetchall()
+        for row in rows:
+            status = "Valid" if row[3] else "Invalid"
+            writer.writerow([row[0], row[1] or "EN", status, row[2] or "", row[4]])
+    else:
+        cursor.execute("SELECT word, language, meaning FROM validated_words ORDER BY rowid DESC")
+        rows = cursor.fetchall()
+        import time
+        current_time = time.strftime("%Y-%m-%d %H:%M:%S")
+        for row in rows:
+            writer.writerow([row[0], row[1] or "EN", "Valid", row[2] or "", current_time])
+    
+    conn.close()
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=word_validations.csv"}
+    )
+
 @app.route("/dashboard")
 def dashboard_page():
     return render_template("dashboard.html")

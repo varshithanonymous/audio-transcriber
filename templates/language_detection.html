@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Language Detection</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; }
+        .header { background: #17a2b8; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .nav { margin-bottom: 20px; }
+        .nav a { background: #6c757d; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin-right: 10px; }
+        .nav a:hover { background: #495057; }
+        .section { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .controls { margin-bottom: 20px; }
+        button { background: #17a2b8; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; margin: 5px; }
+        button:hover { background: #138496; }
+        textarea { width: 100%; max-width: 600px; height: 120px; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; resize: vertical; }
+        .result { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8; }
+        .lang-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-weight: bold; margin: 5px; }
+        .lang-en { background: #007bff; color: white; }
+        .lang-es { background: #28a745; color: white; }
+        .lang-hi { background: #ffc107; color: black; }
+        .lang-unknown { background: #6c757d; color: white; }
+        .examples { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 20px; }
+        .example { background: #e9ecef; padding: 15px; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+        .example:hover { background: #dee2e6; }
+        .example h4 { margin: 0 0 8px 0; color: #495057; }
+        .example p { margin: 0; font-style: italic; color: #6c757d; }
+        .stats { display: flex; justify-content: space-around; text-align: center; margin: 20px 0; }
+        .stat { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 2em; font-weight: bold; color: #17a2b8; }
+        .stat-label { color: #6c757d; font-size: 0.9em; }
+        #recentDetections { max-height: 400px; overflow-y: auto; margin-top: 15px; }
+        #autoStatus { font-weight: bold; }
+        .detection-item { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #17a2b8; }
+        .match { color: #28a745; font-weight: bold; }
+        .mismatch { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌍 Language Detection System</h1>
+        <p>Automatically detect the language of any text using advanced pattern recognition</p>
+    </div>
+    
+    <div class="nav">
+        <a href="/">🏠 Home</a>
+        <a href="/transcription">🎙️ Transcription</a>
+        <a href="/validation_page">✅ Word Validation</a>
+        <a href="/dashboard">📊 Dashboard</a>
+    </div>
+    
+    <div class="section">
+        <h3>Text Language Detection</h3>
+        <p>Enter any text below and we'll automatically detect its language:</p>
+        
+        <div class="controls">
+            <textarea id="textInput" placeholder="Type or paste text here to detect its language...
+
+Examples:
+• Hello, how are you today?
+• Hola, ¿cómo estás hoy?
+• नमस्ते, आप कैसे हैं?"></textarea><br>
+            <button onclick="detectLanguage()">🔍 Detect Language</button>
+        </div>
+        
+        <div id="detectionResult"></div>
+    </div>
+    
+
+    
+    <div class="section">
+        <h3>Recent Speech Transcriptions</h3>
+        <p>View your recent transcriptions with their languages:</p>
+        <button onclick="loadRecentTranscriptions()">🔄 Load Recent Transcriptions</button>
+        <button onclick="toggleAutoDetection()" id="autoToggle">▶️ Start Auto Refresh</button>
+        <a href="/download/txt" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; margin: 5px;">📄 Download TXT</a>
+        <a href="/download/csv" style="background: #17a2b8; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; margin: 5px;">📈 Download CSV</a>
+        <div id="autoStatus" style="margin: 10px 0; padding: 10px; border-radius: 5px; background: #f8f9fa;">Auto refresh: Stopped</div>
+        <div id="recentDetections"></div>
+    </div>
+    
+    <div class="section">
+        <h3>Detection Statistics</h3>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-number" id="totalDetections">0</div>
+                <div class="stat-label">Total Detections</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="englishCount">0</div>
+                <div class="stat-label">English</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="spanishCount">0</div>
+                <div class="stat-label">Spanish</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="hindiCount">0</div>
+                <div class="stat-label">Hindi</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let detectionStats = {
+            total: 0,
+            en: 0,
+            es: 0,
+            hi: 0
+        };
+
+        function detectLanguage() {
+            const text = document.getElementById('textInput').value.trim();
+            
+            if (!text) {
+                alert('Please enter some text to detect its language');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('detectionResult');
+            resultDiv.innerHTML = '<div style="color: #6c757d; font-style: italic;">Detecting language...</div>';
+            
+            fetch(`/detect_language?text=${encodeURIComponent(text)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const lang = data.detected_language;
+                    const langNames = {
+                        'en': 'English',
+                        'es': 'Spanish', 
+                        'hi': 'Hindi',
+                        'unknown': 'Unknown'
+                    };
+                    
+                    const langName = langNames[lang] || 'Unknown';
+                    const badgeClass = `lang-${lang}`;
+                    
+                    // Update stats
+                    detectionStats.total++;
+                    if (lang !== 'unknown') {
+                        detectionStats[lang]++;
+                    }
+                    updateStats();
+                    
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <h4>Detection Result:</h4>
+                            <p><strong>Input Text:</strong> "${data.text}"</p>
+                            <p><strong>Detected Language:</strong> <span class="lang-badge ${badgeClass}">${langName.toUpperCase()}</span></p>
+                            <p><strong>Confidence:</strong> ${lang !== 'unknown' ? 'High' : 'Low'}</p>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = '<div style="color: #dc3545;">Error detecting language. Please try again.</div>';
+                });
+        }
+
+        function testExample(exampleText) {
+            document.getElementById('textInput').value = exampleText;
+            detectLanguage();
+        }
+
+        function clearText() {
+            document.getElementById('textInput').value = '';
+            document.getElementById('detectionResult').innerHTML = '';
+        }
+
+        function updateStats() {
+            document.getElementById('totalDetections').textContent = detectionStats.total;
+            document.getElementById('englishCount').textContent = detectionStats.en;
+            document.getElementById('spanishCount').textContent = detectionStats.es;
+            document.getElementById('hindiCount').textContent = detectionStats.hi;
+        }
+
+        // Load stats from localStorage if available
+        const savedStats = localStorage.getItem('languageDetectionStats');
+        if (savedStats) {
+            detectionStats = JSON.parse(savedStats);
+            updateStats();
+        }
+
+        // Save stats to localStorage
+        function saveStats() {
+            localStorage.setItem('languageDetectionStats', JSON.stringify(detectionStats));
+        }
+
+        // Save stats whenever they change
+        const originalUpdateStats = updateStats;
+        updateStats = function() {
+            originalUpdateStats();
+            saveStats();
+        };
+
+        let autoDetectionInterval;
+        let isAutoDetecting = false;
+        let processedTranscripts = new Set();
+
+        function loadRecentTranscriptions() {
+            fetch('/data?limit=10')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('recentDetections');
+                    
+                    if (data.length === 0) {
+                        container.innerHTML = '<p style="color: #6c757d; text-align: center;">No recent transcriptions found. Start transcription first.</p>';
+                        return;
+                    }
+                    
+                    let html = '<h4>Recent Transcriptions:</h4>';
+                    
+                    data.forEach(item => {
+                        const langNames = {
+                            'en': 'English',
+                            'es': 'Spanish', 
+                            'hi': 'Hindi'
+                        };
+                        
+                        const langName = langNames[item.language] || item.language.toUpperCase();
+                        const badgeClass = `lang-${item.language}`;
+                        
+                        html += `
+                            <div style="background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #17a2b8;">
+                                <div style="font-size: 12px; color: #6c757d; margin-bottom: 8px;">${item.timestamp}</div>
+                                <div style="margin-bottom: 8px; font-size: 16px;">"${item.text}"</div>
+                                <div><span class="lang-badge ${badgeClass}">${langName.toUpperCase()}</span></div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                });
+        }
+
+
+
+        function toggleAutoDetection() {
+            const button = document.getElementById('autoToggle');
+            const status = document.getElementById('autoStatus');
+            
+            if (isAutoDetecting) {
+                // Stop auto detection
+                clearInterval(autoDetectionInterval);
+                isAutoDetecting = false;
+                button.textContent = '▶️ Start Auto Refresh';
+                button.style.background = '#17a2b8';
+                status.textContent = 'Auto refresh: Stopped';
+                status.style.background = '#f8d7da';
+                status.style.color = '#721c24';
+            } else {
+                // Start auto refresh
+                isAutoDetecting = true;
+                button.textContent = '⏸️ Stop Auto Refresh';
+                button.style.background = '#dc3545';
+                status.textContent = 'Auto refresh: Running (checking every 7 seconds)';
+                status.style.background = '#d4edda';
+                status.style.color = '#155724';
+                
+                // Load immediately
+                loadRecentTranscriptions();
+                
+                // Set interval for every 7 seconds
+                autoDetectionInterval = setInterval(() => {
+                    loadRecentTranscriptions();
+                }, 7000);
+            }
+        }
+
+        // Auto-focus on text input
+        document.getElementById('textInput').focus();
+        
+        // Load recent transcriptions on page load
+        loadRecentTranscriptions();
+    </script>
+</body>
+</html>

@@ -36,6 +36,7 @@
             <a href="/dataset">Dataset</a>
             <a href="/tutor">Tutor</a>
             <a href="/validation_page">Validation</a>
+            <a href="/language">Language Detection</a>
         </nav>
         <h1>Realtime Transcription</h1>
         <p class="muted">Captures sentences every ~7s. Start/stop recording anytime.</p>
@@ -57,7 +58,6 @@
                 <span id="status" class="muted">Checking…</span>
             </div>
             <div id="log"></div>
-            <div id="pagination"></div>
         </div>
     </div>
 
@@ -82,20 +82,9 @@
                 log.appendChild(div);
             });
             log.scrollTop = log.scrollHeight;
-            renderPagination();
         }
 
-        function renderPagination() {
-            const pagination = document.getElementById("pagination");
-            pagination.innerHTML = "";
-            for (let i = 1; i <= 5; i++) {
-                const btn = document.createElement("button");
-                btn.innerText = i;
-                if (i === currentPage) btn.classList.add("primary");
-                btn.onclick = () => fetchData(i);
-                pagination.appendChild(btn);
-            }
-        }
+
 
         async function startRecording() {
             await fetch("/record/start", {method: "POST"});
