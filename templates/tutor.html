@@ -43,7 +43,8 @@
             </div>
             <div class="card">
                 <h3>Generated Vocabulary</h3>
-                <button onclick="generateVocab()" style="background: var(--accent); color: white; padding: 6px 10px; border: none; border-radius: 4px; margin-bottom: 8px; cursor: pointer;">📚 Generate New Words</button>
+                <button onclick="toggleAutoGeneration()" style="background: var(--accent); color: white; padding: 6px 10px; border: none; border-radius: 4px; margin: 4px; cursor: pointer;">📚 Generate New Words</button>
+                <a href="/download/vocab_bank" style="background: #28a745; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; margin: 4px; display: inline-block;">📄 Download Vocab</a>
                 <div id="generatedVocab" class="muted">Click generate to see new words based on your vocabulary</div>
             </div>
             <div class="card">
@@ -165,8 +166,22 @@
                     return;
                 }
                 if (data.words && data.words.length > 0) {
-                    box.innerHTML = data.words.map(word => `<span class="pill" onclick="validateWord('${word}')">${word}</span>`).join('') + 
-                        `<div style="margin-top: 8px; font-size: 11px; color: var(--muted);">${data.message || 'Generated ' + data.words.length + ' words'}</div>`;
+                    let html = '';
+                    if (data.words_by_language) {
+                        ['en', 'es', 'hi'].forEach(lang => {
+                            if (data.words_by_language[lang] && data.words_by_language[lang].length > 0) {
+                                            html += '<div style="margin: 8px 0;"><strong>' + lang.toUpperCase() + ':</strong> ';
+                                html += data.words_by_language[lang].map(word => 
+                                    '<span class="pill" onclick="validateWord(\'' + word + '\', \'' + lang + '\')">' + word + '</span>'
+                                ).join('');
+                                html += '</div>';
+                            }
+                        });
+                    } else {
+                        html = data.words.map(word => '<span class="pill" onclick="validateWord(\'' + word + '\', \'en\')">' + word + '</span>').join('');
+                    }
+                    html += '<div style="margin-top: 8px; font-size: 11px; color: var(--muted);">' + data.message + '</div>';
+                    box.innerHTML = html;
                 } else {
                     box.innerHTML = 'No words generated. Try speaking more to build vocabulary.';
                 }
@@ -175,9 +190,9 @@
             }
         }
 
-        async function validateWord(word) {
-            await fetch(`/validate_word?word=${word}&lang=en`);
-            alert(`Word "${word}" validated!`);
+        async function validateWord(word, lang = 'en') {
+            await fetch(`/validate_word?word=${word}&lang=${lang}`);
+            alert(`Word "${word}" (${lang.toUpperCase()}) validated!`);
         }
 
         function clearTutorData() {
@@ -224,11 +239,83 @@
             }
         }
 
+        let autoGenInterval;
+        let isAutoGenerating = false;
+
+        async function generateVocab() {
+            try {
+                const res = await fetch('/api/vocabulary_bank');
+                const data = await res.json();
+                console.log('Generated:', data.message);
+                loadStoredVocab();
+            } catch (error) {
+                console.error('Generation error:', error);
+            }
+        }
+
+        function toggleAutoGeneration() {
+            const button = document.querySelector('button[onclick="toggleAutoGeneration()"]');
+            if (isAutoGenerating) {
+                clearInterval(autoGenInterval);
+                isAutoGenerating = false;
+                button.textContent = '📚 Generate New Words';
+                button.style.background = 'var(--accent)';
+            } else {
+                isAutoGenerating = true;
+                button.textContent = '⏸️ Stop Auto Generation';
+                button.style.background = '#dc3545';
+                generateVocab();
+                autoGenInterval = setInterval(generateVocab, 3000);
+            }
+        }
+
+        async function loadStoredVocab() {
+            try {
+                const res = await fetch('/api/get_stored_vocab_bank');
+                const data = await res.json();
+                const box = document.getElementById('generatedVocab');
+                
+                if (data.length === 0) {
+                    box.innerHTML = 'No vocabulary generated yet. Click generate to start.';
+                    return;
+                }
+                
+                // Group by language
+                const byLang = {en: [], es: [], hi: []};
+                data.forEach(item => {
+                    const word = item.word;
+                    if (word.match(/[\u0900-\u097F]/)) {
+                        byLang.hi.push(word);
+                    } else if (word.match(/[áéíóúüñ]/)) {
+                        byLang.es.push(word);
+                    } else {
+                        byLang.en.push(word);
+                    }
+                });
+                
+                let html = '<div style="margin-bottom: 8px; font-weight: bold;">All Generated Vocabulary (' + data.length + ' words):</div>';
+                ['en', 'es', 'hi'].forEach(lang => {
+                    if (byLang[lang].length > 0) {
+                        html += '<div style="margin: 8px 0;"><strong>' + lang.toUpperCase() + ' (' + byLang[lang].length + '):</strong><br>';
+                        html += byLang[lang].map(word => 
+                            '<span class="pill" onclick="validateWord(\'' + word + '\', \'' + lang + '\')" style="margin: 2px; display: inline-block;">' + word + '</span>'
+                        ).join('');
+                        html += '</div>';
+                    }
+                });
+                
+                box.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading stored vocab:', error);
+            }
+        }
+
         function refresh() {
             fetchNewWords();
             fetchOOV();
             fetchChallenge();
             fetchStats();
+            loadStoredVocab();
         }
 
         refresh();

@@ -16,11 +16,40 @@ A real-time audio transcription system supporting **English, Spanish, and Hindi*
    - **Hindi**: Uses MyMemory Translation API with English translation
    - Responses are returned **in the detected language**
 4. **Local Dictionary**: Stores validated words with meanings in local SQLite database
-### B. Adaptive Learning & Tutoring
+
+### B. Intelligent Vocabulary Generation
+**Multi-API Vocabulary Bank System** - Generates truly unique words based on your existing vocabulary:
+
+#### APIs Used for Word Generation:
+1. **Datamuse API** (Primary English word generation):
+   - `ml` parameter: Words with similar meaning
+   - `rel_rhy` parameter: Rhyming words
+   - `sl` parameter: Sound-alike words
+   - `topics` parameter: Topic-based vocabulary (education, technology, nature, science, art, music, sports, food)
+   - `lc` parameter: Words that frequently appear together
+
+2. **Dictionary API** (English synonyms/antonyms):
+   - Extracts synonyms and antonyms from word definitions
+   - URL: `https://api.dictionaryapi.dev/api/v2/entries/en/{word}`
+
+3. **MyMemory Translation API** (Spanish/Hindi generation):
+   - Translates base words: Source language → English → Target language
+   - Generates related words through English intermediary
+   - URL: `https://api.mymemory.translated.net/get?q={word}&langpair={source}|{target}`
+
+#### Generation Process:
+- **English**: Direct API calls to Datamuse for semantic relationships
+- **Spanish**: Base word → English → Datamuse related words → Spanish
+- **Hindi**: Base word → English → Datamuse related words → Hindi
+- **Uniqueness**: Excludes ALL existing words from transcripts, validated words, vocabulary bank, and learning databases
+- **Storage**: Saves generated words to local SQLite database with language detection
+
+### C. Adaptive Learning & Tutoring
 1. Interactive learning interface with questions and answers
 2. Audio-first input with text fallback
 3. Incremental learning: adjusts difficulty based on performance
 4. Personalized lessons and daily challenges
+5. **Tutor Controls**: Complete data management with fresh start options
 
 ## Installation
 
@@ -73,10 +102,10 @@ A real-time audio transcription system supporting **English, Spanish, and Hindi*
    - Navigate to "Real-Time Transcription" to start recording
    - Use "Word Validation" to validate words in any supported language
 
-## Multi-Language Validation
+## Multi-Language Support
 
-The system now supports word validation for all three languages:
-
+### Word Validation
+The system supports word validation for all three languages:
 - **English**: Full dictionary definitions via Dictionary API
 - **Spanish**: Translations and meanings via WordReference and MyMemory APIs
 - **Hindi**: Translations to English with meanings via MyMemory API
@@ -85,6 +114,24 @@ Validation responses are automatically returned **in the detected language**:
 - English: "✓ Valid word: [word]. [definition]"
 - Spanish: "✓ Palabra válida: [word]. [meaning]"
 - Hindi: "✓ वैध शब्द: [word]. [meaning]"
+
+### Vocabulary Generation APIs
+**English Words**:
+- **Datamuse API**: `https://api.datamuse.com/words?ml={word}` (similar meaning)
+- **Datamuse API**: `https://api.datamuse.com/words?rel_rhy={word}` (rhyming)
+- **Datamuse API**: `https://api.datamuse.com/words?sl={word}` (sound-alike)
+- **Datamuse API**: `https://api.datamuse.com/words?topics={topic}` (topic-based)
+- **Dictionary API**: `https://api.dictionaryapi.dev/api/v2/entries/en/{word}` (synonyms/antonyms)
+
+**Spanish Words**:
+- **MyMemory Translation**: `https://api.mymemory.translated.net/get?q={word}&langpair=es|en`
+- **Datamuse API**: English related words generation
+- **MyMemory Translation**: `https://api.mymemory.translated.net/get?q={word}&langpair=en|es`
+
+**Hindi Words**:
+- **MyMemory Translation**: `https://api.mymemory.translated.net/get?q={word}&langpair=hi|en`
+- **Datamuse API**: English related words generation
+- **MyMemory Translation**: `https://api.mymemory.translated.net/get?q={word}&langpair=en|hi`
 
 ## Project Structure
 
@@ -107,13 +154,26 @@ audio-transcriber/
 
 ## API Endpoints
 
+### Core Features
 - `GET /` - Main menu
 - `GET /transcription` - Real-time transcription page
 - `GET /validation_page` - Word validation interface
+- `GET /tutor` - Adaptive tutor with vocabulary generation
 - `GET /validate_word?word=<word>&lang=<lang>` - Validate a word
 - `GET /data?lang=<lang>` - Get transcription history
 - `POST /record/start` - Start recording
 - `POST /record/stop` - Stop recording
+
+### Vocabulary Generation
+- `GET /api/vocabulary_bank` - Generate unique words using multiple APIs
+- `GET /api/get_stored_vocab_bank` - Get stored vocabulary bank
+- `POST /api/clear_vocab_bank` - Clear vocabulary bank
+
+### Tutor Controls
+- `POST /api/clear_tutor_all` - Clear all tutor data (fresh start)
+- `POST /api/clear_tutor_new_words` - Clear user vocabulary only
+- `POST /api/clear_tutor_oov` - Clear OOV words only
+- `POST /api/clear_all_data` - Complete system reset
 
 ## Notes
 
@@ -121,3 +181,6 @@ audio-transcriber/
 - All transcriptions are stored in SQLite database
 - Word validation requires internet connection
 - Speech recognition works offline using Vosk models
+- **Vocabulary generation requires internet** for API access to Datamuse and MyMemory
+- Generated vocabulary is stored locally and persists across sessions
+- System ensures **100% unique words** by checking all existing databases before generation

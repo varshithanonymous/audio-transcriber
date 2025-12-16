@@ -346,10 +346,28 @@ def get_vocabulary_bank():
     cursor.execute("SELECT DISTINCT word FROM validated_words")
     all_existing_words.update([row[0].lower() for row in cursor.fetchall()])
     
-    # Get base words for generation
-    cursor.execute("SELECT DISTINCT word FROM validated_words WHERE is_valid = 1 ORDER BY timestamp DESC LIMIT 10")
-    base_words = [row[0] for row in cursor.fetchall()]
+    # Get base words from new words and OOV words
+    cursor.execute("SELECT DISTINCT word, language FROM validated_words WHERE is_valid = 1 ORDER BY timestamp DESC LIMIT 10")
+    validated_data = cursor.fetchall()
     conn.close()
+    
+    # Get OOV words from chatbot
+    oov_words = []
+    try:
+        chatbot_conn = sqlite3.connect("chatbot_learning.db")
+        chatbot_cursor = chatbot_conn.cursor()
+        chatbot_cursor.execute("SELECT DISTINCT word, language FROM oov_words ORDER BY timestamp DESC LIMIT 10")
+        oov_words = chatbot_cursor.fetchall()
+        chatbot_conn.close()
+    except:
+        pass
+    
+    # Combine all base words
+    all_base_words = validated_data + oov_words
+    base_words_by_lang = {'en': [], 'es': [], 'hi': []}
+    for word, lang in all_base_words:
+        if lang and lang in base_words_by_lang:
+            base_words_by_lang[lang].append(word)
     
     # From transcripts
     trans_conn = sqlite3.connect("transcriptions.db")
@@ -379,7 +397,7 @@ def get_vocabulary_bank():
     except:
         pass
     
-    if not base_words:
+    if not any(base_words_by_lang.values()):
         return jsonify({"words": [], "message": "No validated words found. Speak more to build vocabulary."})
     
     new_vocabulary = set()
@@ -388,112 +406,103 @@ def get_vocabulary_bank():
         import requests
         import random
         
-        # Method 1: Use Datamuse API for related words
-        for base_word in base_words[:5]:
+        new_vocabulary_by_lang = {'en': set(), 'es': set(), 'hi': set()}
+        target_counts = {'en': 5, 'hi': 3, 'es': 2}  # 50%, 30%, 20%
+        
+        # English words - exactly 5 words (50%)
+        en_sources = base_words_by_lang['en'] if base_words_by_lang['en'] else ['water', 'house', 'book']
+        for base_word in en_sources[:1]:
             try:
-                # Get words that mean similar things
-                url = f"https://api.datamuse.com/words?ml={base_word}&max=20"
-                response = requests.get(url, timeout=5)
+                url = f"https://api.datamuse.com/words?ml={base_word}&max=15"
+                response = requests.get(url, timeout=3)
                 if response.status_code == 200:
                     data = response.json()
+                    count = 0
                     for item in data:
+                        if count >= target_counts['en']:
+                            break
                         word = item.get('word', '').lower()
                         if len(word) > 3 and word.isalpha() and word not in all_existing_words:
-                            new_vocabulary.add(word)
-                
-                # Get words that rhyme
-                url = f"https://api.datamuse.com/words?rel_rhy={base_word}&max=15"
-                response = requests.get(url, timeout=5)
-                if response.status_code == 200:
-                    data = response.json()
-                    for item in data:
-                        word = item.get('word', '').lower()
-                        if len(word) > 3 and word.isalpha() and word not in all_existing_words:
-                            new_vocabulary.add(word)
-                
-                # Get words that sound similar
-                url = f"https://api.datamuse.com/words?sl={base_word}&max=10"
-                response = requests.get(url, timeout=5)
-                if response.status_code == 200:
-                    data = response.json()
-                    for item in data:
-                        word = item.get('word', '').lower()
-                        if len(word) > 3 and word.isalpha() and word not in all_existing_words:
-                            new_vocabulary.add(word)
+                            new_vocabulary_by_lang['en'].add(word)
+                            count += 1
             except:
                 continue
         
-        # Method 2: Use dictionary API for synonyms and related words
-        for base_word in base_words[:8]:
+        # Hindi words - exactly 3 words (30%)
+        hi_base_words = ['water', 'house', 'book', 'time', 'work', 'love', 'good', 'new', 'big', 'small']
+        count = 0
+        for base_word in hi_base_words:
+            if count >= target_counts['hi']:
+                break
             try:
-                url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{base_word}"
-                response = requests.get(url, timeout=5)
+                url = f"https://api.mymemory.translated.net/get?q={base_word}&langpair=en|hi"
+                response = requests.get(url, timeout=3)
                 if response.status_code == 200:
                     data = response.json()
-                    if data and len(data) > 0:
-                        meanings = data[0].get('meanings', [])
-                        for meaning in meanings:
-                            # Get synonyms
-                            synonyms = meaning.get('synonyms', [])
-                            for syn in synonyms[:15]:
-                                if len(syn) > 3 and syn.isalpha() and syn.lower() not in all_existing_words:
-                                    new_vocabulary.add(syn.lower())
-                            
-                            # Get antonyms
-                            antonyms = meaning.get('antonyms', [])
-                            for ant in antonyms[:10]:
-                                if len(ant) > 3 and ant.isalpha() and ant.lower() not in all_existing_words:
-                                    new_vocabulary.add(ant.lower())
+                    hi_word = data.get('responseData', {}).get('translatedText', '')
+                    if len(hi_word) > 1 and hi_word not in all_existing_words:
+                        new_vocabulary_by_lang['hi'].add(hi_word)
+                        count += 1
             except:
                 continue
         
-        # Method 3: Generate words by topic using Datamuse
-        topics = ['education', 'technology', 'nature', 'science', 'art', 'music', 'sports', 'food']
-        for topic in random.sample(topics, 3):
+        # Spanish words - exactly 2 words (20%)
+        es_base_words = ['water', 'house', 'book', 'time', 'work', 'love', 'good', 'new', 'big', 'small']
+        count = 0
+        for base_word in es_base_words:
+            if count >= target_counts['es']:
+                break
             try:
-                url = f"https://api.datamuse.com/words?topics={topic}&max=25"
-                response = requests.get(url, timeout=5)
+                url = f"https://api.mymemory.translated.net/get?q={base_word}&langpair=en|es"
+                response = requests.get(url, timeout=3)
                 if response.status_code == 200:
                     data = response.json()
-                    for item in data:
-                        word = item.get('word', '').lower()
-                        if len(word) > 3 and word.isalpha() and word not in all_existing_words:
-                            new_vocabulary.add(word)
+                    es_word = data.get('responseData', {}).get('translatedText', '').lower()
+                    if len(es_word) > 2 and es_word not in all_existing_words:
+                        new_vocabulary_by_lang['es'].add(es_word)
+                        count += 1
             except:
                 continue
         
-        # Method 4: Get words that frequently appear with base words
-        for base_word in base_words[:3]:
-            try:
-                url = f"https://api.datamuse.com/words?lc={base_word}&max=15"
-                response = requests.get(url, timeout=5)
-                if response.status_code == 200:
-                    data = response.json()
-                    for item in data:
-                        word = item.get('word', '').lower()
-                        if len(word) > 3 and word.isalpha() and word not in all_existing_words:
-                            new_vocabulary.add(word)
-            except:
-                continue
+
+        
+
+        
+        # Combine all languages
+        for lang_words in new_vocabulary_by_lang.values():
+            new_vocabulary.update(lang_words)
     
     except Exception as e:
         print(f"Vocabulary generation error: {e}")
         return jsonify({"error": f"Generation failed: {str(e)}", "words": []})
     
-    # Convert to list and limit to 100 unique words
-    final_vocab = list(new_vocabulary)[:100]
+    # Convert to list and limit to 10 words per generation
+    final_vocab = list(new_vocabulary)[:10]
     
-    # Store in vocabulary bank
+    # Store in vocabulary bank with language detection
     if final_vocab:
         vocab_conn = sqlite3.connect("vocabulary_bank.db")
         import time
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         
+        # Add language column if not exists
+        try:
+            vocab_conn.execute("ALTER TABLE vocabulary_bank ADD COLUMN language TEXT DEFAULT 'en'")
+        except:
+            pass
+        
         for word in final_vocab:
+            # Detect language
+            word_lang = 'en'
+            if any(c in word for c in 'áéíóúüñ'):
+                word_lang = 'es'
+            elif any(ord(c) > 2304 and ord(c) < 2432 for c in word):
+                word_lang = 'hi'
+            
             try:
                 vocab_conn.execute(
-                    "INSERT OR IGNORE INTO vocabulary_bank (word, source_word, generated_date) VALUES (?, ?, ?)",
-                    (word, ", ".join(base_words[:3]), timestamp)
+                    "INSERT OR IGNORE INTO vocabulary_bank (word, source_word, generated_date, language) VALUES (?, ?, ?, ?)",
+                    (word, f"{word_lang} base words", timestamp, word_lang)
                 )
             except:
                 pass
@@ -501,12 +510,23 @@ def get_vocabulary_bank():
         vocab_conn.commit()
         vocab_conn.close()
     
+    # Group results by language
+    vocab_by_lang = {'en': [], 'es': [], 'hi': []}
+    for word in final_vocab:
+        if any(c in word for c in 'áéíóúüñ'):
+            vocab_by_lang['es'].append(word)
+        elif any(ord(c) > 2304 and ord(c) < 2432 for c in word):
+            vocab_by_lang['hi'].append(word)
+        else:
+            vocab_by_lang['en'].append(word)
+    
     return jsonify({
-        "words": final_vocab, 
-        "base_words": base_words, 
+        "words": final_vocab,
+        "words_by_language": vocab_by_lang,
+        "base_words_by_lang": base_words_by_lang,
         "total_generated": len(final_vocab), 
         "excluded_count": len(all_existing_words),
-        "message": f"Generated {len(final_vocab)} unique words from {len(base_words)} base words"
+        "message": f"Generated {len(final_vocab)}/10 words (50% EN, 30% HI, 20% ES): EN({len(vocab_by_lang['en'])}), HI({len(vocab_by_lang['hi'])}), ES({len(vocab_by_lang['es'])})"
     })
 
 @app.route("/api/clear_all_data", methods=["POST"])
