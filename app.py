@@ -308,6 +308,351 @@ def get_pending_words():
     conn.close()
     return jsonify({"words": [r[0] for r in rows]})
 
+# Initialize vocabulary bank database
+def init_vocab_bank_db():
+    conn = sqlite3.connect("vocabulary_bank.db")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS vocabulary_bank (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            word TEXT UNIQUE,
+            source_word TEXT,
+            meaning TEXT,
+            generated_date TEXT,
+            is_validated INTEGER DEFAULT 0
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_vocab_bank_db()
+
+@app.route("/api/vocabulary_bank")
+def get_vocabulary_bank():
+    """Generate vocabulary bank using multiple APIs for truly unique words"""
+    try:
+        import requests
+        test_response = requests.get("https://api.datamuse.com/words?ml=test&max=1", timeout=5)
+        if test_response.status_code != 200:
+            raise Exception("API not accessible")
+    except Exception as e:
+        return jsonify({"error": f"Offline - Internet required for vocabulary generation ({str(e)})", "words": []})
+    
+    # Get all existing words from ALL sources
+    all_existing_words = set()
+    
+    # From validated words
+    conn = sqlite3.connect("word_database.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT word FROM validated_words")
+    all_existing_words.update([row[0].lower() for row in cursor.fetchall()])
+    
+    # Get base words for generation
+    cursor.execute("SELECT DISTINCT word FROM validated_words WHERE is_valid = 1 ORDER BY timestamp DESC LIMIT 10")
+    base_words = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    
+    # From transcripts
+    trans_conn = sqlite3.connect("transcriptions.db")
+    trans_cursor = trans_conn.cursor()
+    trans_cursor.execute("SELECT DISTINCT text FROM transcripts")
+    for row in trans_cursor.fetchall():
+        words = [w.strip('.,!?;:"()[]').lower() for w in row[0].split() if len(w) > 2 and w.isalpha()]
+        all_existing_words.update(words)
+    trans_conn.close()
+    
+    # From vocabulary bank
+    vocab_conn = sqlite3.connect("vocabulary_bank.db")
+    vocab_cursor = vocab_conn.cursor()
+    vocab_cursor.execute("SELECT DISTINCT word FROM vocabulary_bank")
+    all_existing_words.update([row[0].lower() for row in vocab_cursor.fetchall()])
+    vocab_conn.close()
+    
+    # From chatbot data
+    try:
+        chatbot_conn = sqlite3.connect("chatbot_learning.db")
+        chatbot_cursor = chatbot_conn.cursor()
+        chatbot_cursor.execute("SELECT DISTINCT word FROM user_vocabulary")
+        all_existing_words.update([row[0].lower() for row in chatbot_cursor.fetchall()])
+        chatbot_cursor.execute("SELECT DISTINCT word FROM oov_words")
+        all_existing_words.update([row[0].lower() for row in chatbot_cursor.fetchall()])
+        chatbot_conn.close()
+    except:
+        pass
+    
+    if not base_words:
+        return jsonify({"words": [], "message": "No validated words found. Speak more to build vocabulary."})
+    
+    new_vocabulary = set()
+    
+    try:
+        import requests
+        import random
+        
+        # Method 1: Use Datamuse API for related words
+        for base_word in base_words[:5]:
+            try:
+                # Get words that mean similar things
+                url = f"https://api.datamuse.com/words?ml={base_word}&max=20"
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data:
+                        word = item.get('word', '').lower()
+                        if len(word) > 3 and word.isalpha() and word not in all_existing_words:
+                            new_vocabulary.add(word)
+                
+                # Get words that rhyme
+                url = f"https://api.datamuse.com/words?rel_rhy={base_word}&max=15"
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data:
+                        word = item.get('word', '').lower()
+                        if len(word) > 3 and word.isalpha() and word not in all_existing_words:
+                            new_vocabulary.add(word)
+                
+                # Get words that sound similar
+                url = f"https://api.datamuse.com/words?sl={base_word}&max=10"
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data:
+                        word = item.get('word', '').lower()
+                        if len(word) > 3 and word.isalpha() and word not in all_existing_words:
+                            new_vocabulary.add(word)
+            except:
+                continue
+        
+        # Method 2: Use dictionary API for synonyms and related words
+        for base_word in base_words[:8]:
+            try:
+                url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{base_word}"
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data and len(data) > 0:
+                        meanings = data[0].get('meanings', [])
+                        for meaning in meanings:
+                            # Get synonyms
+                            synonyms = meaning.get('synonyms', [])
+                            for syn in synonyms[:15]:
+                                if len(syn) > 3 and syn.isalpha() and syn.lower() not in all_existing_words:
+                                    new_vocabulary.add(syn.lower())
+                            
+                            # Get antonyms
+                            antonyms = meaning.get('antonyms', [])
+                            for ant in antonyms[:10]:
+                                if len(ant) > 3 and ant.isalpha() and ant.lower() not in all_existing_words:
+                                    new_vocabulary.add(ant.lower())
+            except:
+                continue
+        
+        # Method 3: Generate words by topic using Datamuse
+        topics = ['education', 'technology', 'nature', 'science', 'art', 'music', 'sports', 'food']
+        for topic in random.sample(topics, 3):
+            try:
+                url = f"https://api.datamuse.com/words?topics={topic}&max=25"
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data:
+                        word = item.get('word', '').lower()
+                        if len(word) > 3 and word.isalpha() and word not in all_existing_words:
+                            new_vocabulary.add(word)
+            except:
+                continue
+        
+        # Method 4: Get words that frequently appear with base words
+        for base_word in base_words[:3]:
+            try:
+                url = f"https://api.datamuse.com/words?lc={base_word}&max=15"
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data:
+                        word = item.get('word', '').lower()
+                        if len(word) > 3 and word.isalpha() and word not in all_existing_words:
+                            new_vocabulary.add(word)
+            except:
+                continue
+    
+    except Exception as e:
+        print(f"Vocabulary generation error: {e}")
+        return jsonify({"error": f"Generation failed: {str(e)}", "words": []})
+    
+    # Convert to list and limit to 100 unique words
+    final_vocab = list(new_vocabulary)[:100]
+    
+    # Store in vocabulary bank
+    if final_vocab:
+        vocab_conn = sqlite3.connect("vocabulary_bank.db")
+        import time
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        
+        for word in final_vocab:
+            try:
+                vocab_conn.execute(
+                    "INSERT OR IGNORE INTO vocabulary_bank (word, source_word, generated_date) VALUES (?, ?, ?)",
+                    (word, ", ".join(base_words[:3]), timestamp)
+                )
+            except:
+                pass
+        
+        vocab_conn.commit()
+        vocab_conn.close()
+    
+    return jsonify({
+        "words": final_vocab, 
+        "base_words": base_words, 
+        "total_generated": len(final_vocab), 
+        "excluded_count": len(all_existing_words),
+        "message": f"Generated {len(final_vocab)} unique words from {len(base_words)} base words"
+    })
+
+@app.route("/api/clear_all_data", methods=["POST"])
+def clear_all_data():
+    """Clear all database records and start fresh"""
+    try:
+        # Clear transcriptions
+        conn1 = sqlite3.connect("transcriptions.db")
+        conn1.execute("DELETE FROM transcripts")
+        conn1.commit()
+        conn1.close()
+        
+        # Clear validated words
+        conn2 = sqlite3.connect("word_database.db")
+        conn2.execute("DELETE FROM validated_words")
+        conn2.commit()
+        conn2.close()
+        
+        # Clear adaptive tutor data and vocabulary bank
+        try:
+            from adaptive_chatbot import AdaptiveChatbot
+            chatbot = AdaptiveChatbot()
+            chatbot.clear_all_adaptive_data()
+            
+            # Clear vocabulary bank
+            conn4 = sqlite3.connect("vocabulary_bank.db")
+            conn4.execute("DELETE FROM vocabulary_bank")
+            conn4.commit()
+            conn4.close()
+        except:
+            pass
+        
+        # Clear audio files
+        import glob
+        audio_files = glob.glob("audio_clips/*.wav")
+        for file in audio_files:
+            try:
+                os.remove(file)
+            except:
+                pass
+        
+        return jsonify({"status": "success", "message": "All data cleared successfully"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route("/api/get_stored_vocab_bank")
+def get_stored_vocab_bank():
+    """Get stored vocabulary bank words"""
+    conn = sqlite3.connect("vocabulary_bank.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT word, source_word, generated_date FROM vocabulary_bank ORDER BY generated_date DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return jsonify([{"word": r[0], "source": r[1], "date": r[2]} for r in rows])
+
+@app.route("/api/clear_vocab_bank", methods=["POST"])
+def clear_vocab_bank():
+    """Clear vocabulary bank"""
+    try:
+        conn = sqlite3.connect("vocabulary_bank.db")
+        conn.execute("DELETE FROM vocabulary_bank")
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "success", "message": "Vocabulary bank cleared"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route("/api/clear_tutor_all", methods=["POST"])
+def clear_tutor_all():
+    """Clear all tutor/learning data and start completely fresh"""
+    try:
+        # Clear chatbot learning data
+        try:
+            chatbot_conn = sqlite3.connect("chatbot_learning.db")
+            chatbot_conn.execute("DELETE FROM user_vocabulary")
+            chatbot_conn.execute("DELETE FROM oov_words")
+            chatbot_conn.execute("DELETE FROM user_performance")
+            chatbot_conn.commit()
+            chatbot_conn.close()
+        except:
+            pass
+        
+        # Clear vocabulary bank
+        vocab_conn = sqlite3.connect("vocabulary_bank.db")
+        vocab_conn.execute("DELETE FROM vocabulary_bank")
+        vocab_conn.commit()
+        vocab_conn.close()
+        
+        # Clear validated words
+        word_conn = sqlite3.connect("word_database.db")
+        word_conn.execute("DELETE FROM validated_words")
+        word_conn.commit()
+        word_conn.close()
+        
+        return jsonify({"status": "success", "message": "All tutor data cleared - fresh start!"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route("/api/clear_tutor_new_words", methods=["POST"])
+def clear_tutor_new_words():
+    """Clear only new words (user vocabulary)"""
+    try:
+        chatbot_conn = sqlite3.connect("chatbot_learning.db")
+        chatbot_conn.execute("DELETE FROM user_vocabulary")
+        chatbot_conn.commit()
+        chatbot_conn.close()
+        
+        return jsonify({"status": "success", "message": "New words cleared"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route("/api/clear_tutor_oov", methods=["POST"])
+def clear_tutor_oov():
+    """Clear only OOV (Out of Vocabulary) words"""
+    try:
+        chatbot_conn = sqlite3.connect("chatbot_learning.db")
+        chatbot_conn.execute("DELETE FROM oov_words")
+        chatbot_conn.commit()
+        chatbot_conn.close()
+        
+        return jsonify({"status": "success", "message": "OOV words cleared"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route("/download/vocab_bank")
+def download_vocab_bank():
+    """Download vocabulary bank as CSV"""
+    conn = sqlite3.connect("vocabulary_bank.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT word, source_word, generated_date FROM vocabulary_bank ORDER BY generated_date DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Word", "Source Words", "Generated Date"])
+    
+    for row in rows:
+        writer.writerow([row[0], row[1], row[2]])
+    
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=vocabulary_bank.csv"}
+    )
+
 @app.route("/download/validations")
 def download_validations():
     conn = sqlite3.connect("word_database.db")

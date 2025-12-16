@@ -76,10 +76,33 @@
     </div>
     
     <div class="section">
+        <h3>Adaptive Tutor Controls</h3>
+        <p>Manage your learning data and progress:</p>
+        <button style="background: #dc3545; color: white;" onclick="clearTutorData()">🗑️ Clear All Tutor Data</button>
+        <button style="background: #ffc107; color: black;" onclick="clearNewWords()">🗑️ Clear New Words Only</button>
+        <button style="background: #6f42c1; color: white;" onclick="clearOOVWords()">🗑️ Clear OOV Words Only</button>
+        <button style="background: #28a745; color: white;" onclick="clearAllAndFresh()">🔄 Clear Everything & Fresh Start</button>
+        <div id="tutorStatus" style="margin: 10px 0; padding: 10px; border-radius: 5px; background: #f8f9fa;"></div>
+    </div>
+    
+    <div class="section">
+        <h3>Vocabulary Bank - Incremental Learning</h3>
+        <p>Discover new words based on your validated vocabulary:</p>
+        <button class="auto-btn" onclick="loadVocabularyBank()">📚 Generate Vocabulary Bank</button>
+        <button class="validate-btn" onclick="validateVocabWords()">✅ Validate Selected Vocab</button>
+        <button class="auto-btn" onclick="toggleAutoGeneration()" id="autoGenToggle">▶️ Start Auto Generation</button>
+        <button style="background: #dc3545; color: white;" onclick="clearVocabBank()">🗑️ Clear Vocab Bank</button>
+        <a href="/download/vocab_bank" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; margin: 5px;">📥 Download Vocab Bank</a>
+        <div id="vocabStatus" style="margin: 10px 0; padding: 10px; border-radius: 5px; background: #f8f9fa;"></div>
+        <div id="vocabularyBank" class="new-words"></div>
+    </div>
+    
+    <div class="section">
         <h3>Validation History</h3>
         <div class="controls">
             <button class="download-btn" onclick="downloadValidations()">📥 Download All Validations</button>
             <button class="validate-btn" onclick="loadValidations()">🔄 Refresh Table</button>
+            <button style="background: #dc3545; color: white;" onclick="clearAllData()">🗑️ Clear All Data</button>
         </div>
         
         <table id="validationTable">
@@ -256,6 +279,27 @@
             window.location.href = '/download/validations';
         }
 
+        function clearAllData() {
+            if (confirm('Are you sure you want to delete ALL data? This will clear:\n- All transcriptions\n- All validated words\n- All new words (pending)\n- All OOV words\n- All vocabulary bank data\n- All audio files\n\nThis action cannot be undone!')) {
+                fetch('/api/clear_all_data', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('All data cleared successfully!');
+                            loadValidations();
+                            loadNewWords();
+                            document.getElementById('vocabularyBank').innerHTML = '';
+                            document.getElementById('vocabStatus').textContent = '';
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error clearing data');
+                    });
+            }
+        }
+
         // Initialize page
         checkConnection();
         loadValidations();
@@ -317,6 +361,226 @@
                     // If offline, just refresh the word list (words will be stored as pending)
                     loadNewWords();
                 });
+        }
+
+        let selectedVocabWords = new Set();
+
+        function loadVocabularyBank() {
+            const status = document.getElementById('vocabStatus');
+            status.textContent = 'Generating vocabulary bank...';
+            status.style.background = '#fff3cd';
+            status.style.color = '#856404';
+            
+            fetch('/api/vocabulary_bank')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('vocabularyBank');
+                    
+                    if (data.error) {
+                        status.textContent = data.error;
+                        status.style.background = '#f8d7da';
+                        status.style.color = '#721c24';
+                        container.innerHTML = '';
+                        return;
+                    }
+                    
+                    if (data.words.length === 0) {
+                        status.textContent = data.message || 'No new vocabulary words generated';
+                        container.innerHTML = '';
+                        return;
+                    }
+                    
+                    status.textContent = `${data.message} (Excluded ${data.excluded_count} existing words)`;
+                    status.style.background = '#d4edda';
+                    status.style.color = '#155724';
+                    
+                    let html = '';
+                    data.words.forEach(word => {
+                        const isSelected = selectedVocabWords.has(word);
+                        const selectedClass = isSelected ? ' style="background: #007BFF; color: white;"' : '';
+                        html += `<span class="word-chip" onclick="toggleVocabWord('${word}')"${selectedClass}>${word}</span>`;
+                    });
+                    
+                    container.innerHTML = html;
+                })
+                .catch(error => {
+                    status.textContent = 'Error generating vocabulary bank';
+                    status.style.background = '#f8d7da';
+                    status.style.color = '#721c24';
+                });
+        }
+
+        function toggleVocabWord(word) {
+            if (selectedVocabWords.has(word)) {
+                selectedVocabWords.delete(word);
+            } else {
+                selectedVocabWords.add(word);
+            }
+            
+            // Update visual selection
+            const chips = document.querySelectorAll('.word-chip');
+            chips.forEach(chip => {
+                if (chip.textContent === word) {
+                    if (selectedVocabWords.has(word)) {
+                        chip.style.background = '#007BFF';
+                        chip.style.color = 'white';
+                    } else {
+                        chip.style.background = '#e9ecef';
+                        chip.style.color = 'black';
+                    }
+                }
+            });
+        }
+
+        function validateVocabWords() {
+            if (selectedVocabWords.size === 0) {
+                alert('Please select some vocabulary words first');
+                return;
+            }
+            
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = 'Validating...';
+            
+            let completed = 0;
+            const totalWords = selectedVocabWords.size;
+            
+            selectedVocabWords.forEach(word => {
+                fetch(`/validate_word?word=${encodeURIComponent(word)}&lang=en`)
+                    .then(() => {
+                        completed++;
+                        if (completed === totalWords) {
+                            button.disabled = false;
+                            button.textContent = '✅ Validate Selected Vocab';
+                            selectedVocabWords.clear();
+                            loadVocabularyBank();
+                            loadValidations();
+                            alert(`Validated ${completed} vocabulary words`);
+                        }
+                    })
+                    .catch(() => {
+                        completed++;
+                        if (completed === totalWords) {
+                            button.disabled = false;
+                            button.textContent = '✅ Validate Selected Vocab';
+                        }
+                    });
+            });
+        }
+
+        let autoGenInterval;
+        let isAutoGenerating = false;
+
+        function toggleAutoGeneration() {
+            const button = document.getElementById('autoGenToggle');
+            
+            if (isAutoGenerating) {
+                clearInterval(autoGenInterval);
+                isAutoGenerating = false;
+                button.textContent = '▶️ Start Auto Generation';
+                button.style.background = '#17a2b8';
+            } else {
+                isAutoGenerating = true;
+                button.textContent = '⏸️ Stop Auto Generation';
+                button.style.background = '#dc3545';
+                
+                // Generate immediately
+                loadVocabularyBank();
+                
+                // Generate every 60 seconds
+                autoGenInterval = setInterval(() => {
+                    loadVocabularyBank();
+                }, 60000);
+            }
+        }
+
+        function clearVocabBank() {
+            if (confirm('Clear all vocabulary bank words?')) {
+                fetch('/api/clear_vocab_bank', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('Vocabulary bank cleared!');
+                            document.getElementById('vocabularyBank').innerHTML = '';
+                            document.getElementById('vocabStatus').textContent = 'Vocabulary bank cleared';
+                        }
+                    });
+            }
+        }
+
+        function clearTutorData() {
+            if (confirm('Clear ALL tutor data? This will delete:\n- All validated words\n- All vocabulary bank words\n- All user vocabulary\n- All OOV words\n- All performance data\n\nThis gives you a completely fresh start!')) {
+                fetch('/api/clear_tutor_all', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('All tutor data cleared - fresh start!');
+                            document.getElementById('tutorStatus').textContent = data.message;
+                            document.getElementById('tutorStatus').style.background = '#d4edda';
+                            document.getElementById('tutorStatus').style.color = '#155724';
+                            loadValidations();
+                            loadNewWords();
+                            document.getElementById('vocabularyBank').innerHTML = '';
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    });
+            }
+        }
+
+        function clearNewWords() {
+            if (confirm('Clear new words (user vocabulary) only?')) {
+                fetch('/api/clear_tutor_new_words', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('New words cleared!');
+                            document.getElementById('tutorStatus').textContent = data.message;
+                            document.getElementById('tutorStatus').style.background = '#fff3cd';
+                            document.getElementById('tutorStatus').style.color = '#856404';
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    });
+            }
+        }
+
+        function clearOOVWords() {
+            if (confirm('Clear OOV (Out of Vocabulary) words only?')) {
+                fetch('/api/clear_tutor_oov', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('OOV words cleared!');
+                            document.getElementById('tutorStatus').textContent = data.message;
+                            document.getElementById('tutorStatus').style.background = '#e2e3f0';
+                            document.getElementById('tutorStatus').style.color = '#6f42c1';
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    });
+            }
+        }
+
+        function clearAllAndFresh() {
+            if (confirm('COMPLETE FRESH START - This will clear EVERYTHING:\n\n- All transcriptions\n- All validated words\n- All vocabulary bank\n- All tutor data\n- All audio files\n\nYou will start completely fresh. Continue?')) {
+                fetch('/api/clear_all_data', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('Complete fresh start! All data cleared.');
+                            document.getElementById('tutorStatus').textContent = 'Fresh start complete - all data cleared';
+                            document.getElementById('tutorStatus').style.background = '#d4edda';
+                            document.getElementById('tutorStatus').style.color = '#155724';
+                            loadValidations();
+                            loadNewWords();
+                            document.getElementById('vocabularyBank').innerHTML = '';
+                            document.getElementById('vocabStatus').textContent = '';
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    });
+            }
         }
 
         // Auto-refresh every 30 seconds

@@ -678,3 +678,26 @@ class AdaptiveChatbot:
         }
         
         return challenges.get(user_level, challenges['beginner'])
+    
+    def clear_all_adaptive_data(self):
+        """Clear all adaptive tutor data for fresh start"""
+        conn = sqlite3.connect(self.db_file)
+        
+        # Clear all adaptive learning tables
+        tables_to_clear = [
+            'user_vocabulary',
+            'oov_words', 
+            'learning_sessions',
+            'user_progress',
+            'performance_analytics'
+        ]
+        
+        for table in tables_to_clear:
+            try:
+                conn.execute(f"DELETE FROM {table}")
+            except:
+                pass
+        
+        conn.commit()
+        conn.close()
+        return True

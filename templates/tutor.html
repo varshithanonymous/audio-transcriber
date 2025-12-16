@@ -34,12 +34,21 @@
         <p class="muted">Tracks vocabulary, OOV words, challenges, and lessons.</p>
         <div class="grid">
             <div class="card">
-                <h3>New Words (7 days)</h3>
-                <div id="newWords" class="muted">Loading…</div>
+                <h3>Tutor Controls</h3>
+                <button onclick="clearTutorData()" style="background: #dc3545; color: white; padding: 8px 12px; border: none; border-radius: 6px; margin: 4px; cursor: pointer;">🗑️ Clear All</button>
+                <button onclick="clearNewWords()" style="background: #ffc107; color: black; padding: 8px 12px; border: none; border-radius: 6px; margin: 4px; cursor: pointer;">🗑️ Clear New Words</button>
+                <button onclick="clearOOVWords()" style="background: #6f42c1; color: white; padding: 8px 12px; border: none; border-radius: 6px; margin: 4px; cursor: pointer;">🗑️ Clear OOV</button>
+                <button onclick="clearAllAndFresh()" style="background: #28a745; color: white; padding: 8px 12px; border: none; border-radius: 6px; margin: 4px; cursor: pointer;">🔄 Fresh Start</button>
+                <div id="tutorStatus" style="margin: 8px 0; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.05); font-size: 12px;"></div>
             </div>
             <div class="card">
-                <h3>Vocabulary Bank</h3>
-                <div id="vocabList" class="muted">Loading…</div>
+                <h3>Generated Vocabulary</h3>
+                <button onclick="generateVocab()" style="background: var(--accent); color: white; padding: 6px 10px; border: none; border-radius: 4px; margin-bottom: 8px; cursor: pointer;">📚 Generate New Words</button>
+                <div id="generatedVocab" class="muted">Click generate to see new words based on your vocabulary</div>
+            </div>
+            <div class="card">
+                <h3>New Words (7 days)</h3>
+                <div id="newWords" class="muted">Loading…</div>
             </div>
             <div class="card">
                 <h3>Out-of-Vocabulary</h3>
@@ -48,10 +57,6 @@
             <div class="card">
                 <h3>Daily Challenge</h3>
                 <div id="challenge" class="muted">Loading…</div>
-            </div>
-            <div class="card">
-                <h3>Personalized Lesson</h3>
-                <div id="lesson" class="muted">Loading…</div>
             </div>
             <div class="card">
                 <h3>Learning Stats</h3>
@@ -145,12 +150,84 @@
             document.getElementById("stats").innerHTML = lines.join("") || "No stats yet.";
         }
 
+        async function generateVocab() {
+            document.getElementById('generatedVocab').innerHTML = 'Generating unique words...';
+            try {
+                const res = await fetch('/api/vocabulary_bank');
+                const data = await res.json();
+                const box = document.getElementById('generatedVocab');
+                if (data.error) {
+                    box.innerHTML = `<div style="color: #ef4444;">${data.error}</div>`;
+                    return;
+                }
+                if (data.words && data.words.length === 0) {
+                    box.innerHTML = data.message || 'No new words generated';
+                    return;
+                }
+                if (data.words && data.words.length > 0) {
+                    box.innerHTML = data.words.map(word => `<span class="pill" onclick="validateWord('${word}')">${word}</span>`).join('') + 
+                        `<div style="margin-top: 8px; font-size: 11px; color: var(--muted);">${data.message || 'Generated ' + data.words.length + ' words'}</div>`;
+                } else {
+                    box.innerHTML = 'No words generated. Try speaking more to build vocabulary.';
+                }
+            } catch (error) {
+                document.getElementById('generatedVocab').innerHTML = `<div style="color: #ef4444;">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function validateWord(word) {
+            await fetch(`/validate_word?word=${word}&lang=en`);
+            alert(`Word "${word}" validated!`);
+        }
+
+        function clearTutorData() {
+            if (confirm('Clear ALL tutor data?')) {
+                fetch('/api/clear_tutor_all', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('tutorStatus').textContent = data.message;
+                        refresh();
+                    });
+            }
+        }
+
+        function clearNewWords() {
+            if (confirm('Clear new words only?')) {
+                fetch('/api/clear_tutor_new_words', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('tutorStatus').textContent = data.message;
+                        refresh();
+                    });
+            }
+        }
+
+        function clearOOVWords() {
+            if (confirm('Clear OOV words only?')) {
+                fetch('/api/clear_tutor_oov', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('tutorStatus').textContent = data.message;
+                        refresh();
+                    });
+            }
+        }
+
+        function clearAllAndFresh() {
+            if (confirm('COMPLETE FRESH START - Clear everything?')) {
+                fetch('/api/clear_all_data', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('tutorStatus').textContent = 'Fresh start complete!';
+                        refresh();
+                    });
+            }
+        }
+
         function refresh() {
             fetchNewWords();
-            fetchVocab();
             fetchOOV();
             fetchChallenge();
-            fetchLesson();
             fetchStats();
         }
 
