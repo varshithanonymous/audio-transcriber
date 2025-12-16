@@ -112,7 +112,16 @@
                 .catch(() => {
                     const status = document.getElementById('connectionStatus');
                     status.className = 'status offline';
-                    status.textContent = '🔴 Offline - No internet connection';
+                    
+                    // Show pending words count in offline mode
+                    fetch('/api/get_pending_words')
+                        .then(response => response.json())
+                        .then(data => {
+                            status.textContent = `🔴 Offline - ${data.words.length} words pending validation`;
+                        })
+                        .catch(() => {
+                            status.textContent = '🔴 Offline - No internet connection';
+                        });
                 });
         }
 
@@ -281,18 +290,32 @@
         }
 
         function autoValidateNewWords() {
-            fetch('/api/get_new_words')
+            // Check connection first
+            fetch('/validate_word?word=test')
                 .then(response => response.json())
-                .then(data => {
-                    if (data.words.length > 0) {
-                        data.words.slice(0, 3).forEach(word => {
-                            fetch(`/validate_word?word=${encodeURIComponent(word)}&lang=en`)
-                                .then(() => {
-                                    loadNewWords();
-                                    loadValidations();
+                .then(connectionData => {
+                    // If online, validate pending words
+                    fetch('/api/get_pending_words')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.words.length > 0) {
+                                // Validate up to 3 pending words
+                                data.words.slice(0, 3).forEach(word => {
+                                    fetch(`/validate_word?word=${encodeURIComponent(word)}&lang=en`)
+                                        .then(() => {
+                                            loadNewWords();
+                                            loadValidations();
+                                        })
+                                        .catch(() => {
+                                            // If validation fails, continue with next word
+                                        });
                                 });
+                            }
                         });
-                    }
+                })
+                .catch(() => {
+                    // If offline, just refresh the word list (words will be stored as pending)
+                    loadNewWords();
                 });
         }
 

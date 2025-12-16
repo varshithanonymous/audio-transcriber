@@ -251,16 +251,28 @@ def get_new_words():
     
     validated_conn = sqlite3.connect("word_database.db")
     validated_cursor = validated_conn.cursor()
-    new_words = []
+    
+    # Store new words as pending validation (is_valid = -1) even in offline mode
+    import time
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     
     for word in all_words:
         validated_cursor.execute("SELECT word FROM validated_words WHERE word=?", (word,))
         if not validated_cursor.fetchone():
-            new_words.append(word)
+            validated_cursor.execute(
+                "INSERT OR IGNORE INTO validated_words (user_id, word, language, meaning, is_valid, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                ("default_user", word, "en", "", -1, timestamp)
+            )
+    
+    validated_conn.commit()
+    
+    # Return words that need validation (is_valid = -1)
+    validated_cursor.execute("SELECT word FROM validated_words WHERE is_valid = -1 ORDER BY timestamp DESC LIMIT 20")
+    pending_words = [row[0] for row in validated_cursor.fetchall()]
     
     validated_conn.close()
     conn.close()
-    return jsonify({"words": list(new_words)[:20]})
+    return jsonify({"words": pending_words})
 
 @app.route("/api/get_all_words")
 def get_all_validated_words():
@@ -285,6 +297,16 @@ def get_all_validated_words():
     
     conn.close()
     return jsonify(result)
+
+@app.route("/api/get_pending_words")
+def get_pending_words():
+    """Get words that are pending validation (stored offline, need online validation)"""
+    conn = sqlite3.connect("word_database.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT word FROM validated_words WHERE is_valid = -1 ORDER BY timestamp DESC LIMIT 50")
+    rows = cursor.fetchall()
+    conn.close()
+    return jsonify({"words": [r[0] for r in rows]})
 
 @app.route("/download/validations")
 def download_validations():
