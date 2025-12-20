@@ -1,326 +1,219 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Adaptive Tutor</title>
-    <style>
-        :root {
-            --bg: #0f172a;
-            --panel: rgba(255,255,255,0.05);
-            --border: rgba(255,255,255,0.08);
-            --text: #e2e8f0;
-            --muted: #94a3b8;
-            --accent: #38bdf8;
-        }
-        body { font-family: "Inter","Segoe UI",Arial,sans-serif; background: var(--bg); margin: 0; padding: 28px; color: var(--text); }
-        .wrap { max-width: 1100px; margin: auto; }
-        nav a { margin-right: 12px; color: var(--text); text-decoration: none; }
-        h1 { margin-bottom: 6px; }
-        .muted { color: var(--muted); font-size: 13px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
-        .card { background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.35); }
-        .pill { display: inline-block; padding: 6px 8px; background: rgba(56,189,248,0.16); color: var(--text); border-radius: 12px; margin: 3px; font-size: 13px; border: 1px solid rgba(56,189,248,0.3); cursor: pointer; }
-        .pill.disabled { opacity: 0.4; pointer-events: none; }
-    </style>
-</head>
-<body>
-    <div class="wrap">
-        <nav>
-            <a href="/">Home</a>
-            <a href="/transcription">Transcription</a>
-            <a href="/dataset">Dataset</a>
-            <a href="/validation_page">Validation</a>
-        </nav>
-        <h1>Adaptive Tutor</h1>
-        <p class="muted">Tracks vocabulary, OOV words, challenges, and lessons.</p>
-        <div class="grid">
-            <div class="card">
-                <h3>Tutor Controls</h3>
-                <button onclick="clearTutorData()" style="background: #dc3545; color: white; padding: 8px 12px; border: none; border-radius: 6px; margin: 4px; cursor: pointer;">🗑️ Clear All</button>
-                <button onclick="clearNewWords()" style="background: #ffc107; color: black; padding: 8px 12px; border: none; border-radius: 6px; margin: 4px; cursor: pointer;">🗑️ Clear New Words</button>
-                <button onclick="clearOOVWords()" style="background: #6f42c1; color: white; padding: 8px 12px; border: none; border-radius: 6px; margin: 4px; cursor: pointer;">🗑️ Clear OOV</button>
-                <button onclick="clearAllAndFresh()" style="background: #28a745; color: white; padding: 8px 12px; border: none; border-radius: 6px; margin: 4px; cursor: pointer;">🔄 Fresh Start</button>
-                <div id="tutorStatus" style="margin: 8px 0; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.05); font-size: 12px;"></div>
-            </div>
-            <div class="card">
-                <h3>Generated Vocabulary</h3>
-                <button onclick="toggleAutoGeneration()" style="background: var(--accent); color: white; padding: 6px 10px; border: none; border-radius: 4px; margin: 4px; cursor: pointer;">📚 Generate New Words</button>
-                <a href="/download/vocab_bank" style="background: #28a745; color: white; padding: 6px 10px; text-decoration: none; border-radius: 4px; margin: 4px; display: inline-block;">📄 Download Vocab</a>
-                <div id="generatedVocab" class="muted">Click generate to see new words based on your vocabulary</div>
-            </div>
-            <div class="card">
-                <h3>New Words (7 days)</h3>
-                <div id="newWords" class="muted">Loading…</div>
-            </div>
-            <div class="card">
-                <h3>Out-of-Vocabulary</h3>
-                <div id="oovList" class="muted">Loading…</div>
-            </div>
-            <div class="card">
-                <h3>Daily Challenge</h3>
-                <div id="challenge" class="muted">Loading…</div>
-            </div>
-            <div class="card">
-                <h3>Learning Stats</h3>
-                <div id="stats" class="muted">Loading…</div>
-            </div>
+{% extends "base.html" %}
+
+{% block title %}AI Tutor - LinguaVoice{% endblock %}
+
+{% block content %}
+<div style="height: calc(100vh - 4rem); display: flex; flex-direction: column;">
+    <!-- Header / Lesson Context -->
+    <div class="flex-between mb-4">
+        <div>
+            <h1>AI Personal Tutor</h1>
+            <p id="lesson-objective" style="color: var(--text-muted);">Loading today's lesson...</p>
+        </div>
+        <div>
+            <span class="badge badge-primary" id="session-words">0 Words Learned Today</span>
         </div>
     </div>
 
-    <script>
-        let learnedWords = new Set(JSON.parse(localStorage.getItem("learned_words") || "[]"));
+    <!-- Main Workspace -->
+    <div style="flex: 1; display: flex; gap: 1.5rem; overflow: hidden;">
 
-        async function fetchNewWords() {
-            const res = await fetch("/chatbot/new_words?days=7");
+        <!-- Left: Chat/Transcript Area -->
+        <div class="chat-container" style="flex: 2; height: 100%;">
+            <div class="chat-messages" id="chat-box">
+                <!-- Welcome Message -->
+                <div class="message msg-tutor">
+                    Hello! I'm your AI Language Tutor. I'm listening. Speak in <strong>English, Spanish, or
+                        Hindi</strong>.
+                    <br><br>
+                    I will track your vocabulary and help you learn.
+                </div>
+            </div>
+
+            <div class="chat-controls">
+                <button id="mic-btn" class="mic-btn" onclick="toggleRecording()">
+                    🎤
+                </button>
+                <div style="font-size: 0.9rem; color: var(--text-muted); margin-left: 1rem;">
+                    <span id="status-text">Click to start speaking</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Lesson/Feedback Board -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto;">
+
+            <!-- Context Card -->
+            <div class="card" style="flex-shrink: 0;">
+                <h2>📝 Lesson Goals</h2>
+                <div id="lesson-content">
+                    Loading lesson...
+                </div>
+            </div>
+
+            <!-- Real-time Feedback Card -->
+            <div class="card" style="flex: 1;">
+                <h2>🔍 Analysis</h2>
+                <div id="analysis-content" style="font-size: 0.9rem;">
+                    <p style="color: var(--text-muted);">Speak to see analysis here (new words, OOV detections,
+                        pronunciation).</p>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <h3>Detected Language</h3>
+                    <div id="lang-indicator" class="badge">Waiting...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden audio element if needed for playback -->
+<audio id="audio-player" style="display:none;"></audio>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let isRecording = false;
+    let lastTranscriptId = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadLesson();
+        checkRecordingStatus();
+
+        // Poll for transcripts every 2 seconds
+        setInterval(fetchTranscripts, 2000);
+    });
+
+    async function toggleRecording() {
+        const btn = document.getElementById('mic-btn');
+        const status = document.getElementById('status-text');
+
+        if (isRecording) {
+            // Stop
+            await fetch('/record/stop', { method: 'POST' });
+            isRecording = false;
+            btn.classList.remove('listening');
+            status.innerText = "Processing...";
+            showToast('Recording stopped. Analyzing...', 'info');
+        } else {
+            // Start
+            await fetch('/record/start', { method: 'POST' });
+            isRecording = true;
+            btn.classList.add('listening');
+            status.innerText = "Listening... Speak now";
+            showToast('Microphone active. Listening for EN/ES/HI...', 'success');
+        }
+    }
+
+    async function checkRecordingStatus() {
+        try {
+            const res = await fetch('/record/status');
             const data = await res.json();
-            const box = document.getElementById("newWords");
-            const entries = [];
-            Object.keys(data.by_date || {}).forEach(day => {
-                const words = (data.by_date[day] || []).map(w => {
-                    const key = `${w.language}:${w.word}`;
-                    const disabled = learnedWords.has(key) ? "disabled" : "";
-                    return `<span class="pill ${disabled}" data-key="${key}" onclick="markLearned('${w.word}','${w.language}', this)">${w.word} (${w.language})</span>`;
-                }).join("");
-                entries.push(`<div><strong>${day}</strong>: ${words}</div>`);
-            });
-            box.innerHTML = entries.join("") || "No new words yet.";
-        }
-
-        async function fetchVocab() {
-            const res = await fetch("/chatbot/vocabulary?limit=50");
-            const data = await res.json();
-            const box = document.getElementById("vocabList");
-            box.innerHTML = data.items.map(w => {
-                const key = `${w.language}:${w.word}`;
-                const disabled = learnedWords.has(key) ? "disabled" : "";
-                return `<span class="pill ${disabled}" data-key="${key}" onclick="markLearned('${w.word}','${w.language}', this)">${w.word} (${w.language})</span>`;
-            }).join("") || "Empty.";
-        }
-
-        async function fetchOOV() {
-            const res = await fetch("/chatbot/oov");
-            const data = await res.json();
-            const box = document.getElementById("oovList");
-            box.innerHTML = data.items.map(w => `<span class="pill" title="Seen ${w.occurrences}x">${w.word} (${w.language})</span>`).join("") || "None.";
-        }
-
-        async function markLearned(word, lang, el) {
-            const key = `${lang}:${word}`;
-            if (learnedWords.has(key)) return;
-            await fetch("/chatbot/record_performance", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    user: "default_user",
-                    word,
-                    lang,
-                    lesson_type: "vocabulary",
-                    response_time: 0.5,
-                    is_correct: true,
-                    difficulty_level: "beginner"
-                })
-            });
-            fetchStats();
-            fetchVocab();
-            learnedWords.add(key);
-            localStorage.setItem("learned_words", JSON.stringify([...learnedWords]));
-            if (el) el.classList.add("disabled");
-        }
-
-        async function fetchChallenge() {
-            const res = await fetch("/chatbot/daily_challenge");
-            const data = await res.json();
-            const c = data.challenge || {};
-            document.getElementById("challenge").innerHTML = `<div><strong>${c.title || "Challenge"}</strong></div><div>Goal: ${c.target || "-"} | XP: ${c.xp_reward || 0}</div>`;
-        }
-
-        async function fetchLesson() {
-            const res = await fetch("/chatbot/lesson");
-            const data = await res.json();
-            const lesson = data.lesson || {};
-            document.getElementById("lesson").innerHTML = `<div><strong>${lesson.title || "Lesson"}</strong></div><div>${lesson.adaptive_note || lesson.level || ""}</div>`;
-        }
-
-        async function fetchStats() {
-            const res = await fetch("/chatbot/stats");
-            const data = await res.json();
-            const stats = data.stats || {};
-            const lines = Object.keys(stats).map(lang => {
-                const s = stats[lang];
-                return `<div><strong>${lang}</strong>: level ${s.level || s[1] || "beginner"}, XP ${s.total_xp || s.xp || 0}, streak ${s.streak_days || s.streak || 0}d</div>`;
-            });
-            document.getElementById("stats").innerHTML = lines.join("") || "No stats yet.";
-        }
-
-        async function generateVocab() {
-            document.getElementById('generatedVocab').innerHTML = 'Generating unique words...';
-            try {
-                const res = await fetch('/api/vocabulary_bank');
-                const data = await res.json();
-                const box = document.getElementById('generatedVocab');
-                if (data.error) {
-                    box.innerHTML = `<div style="color: #ef4444;">${data.error}</div>`;
-                    return;
-                }
-                if (data.words && data.words.length === 0) {
-                    box.innerHTML = data.message || 'No new words generated';
-                    return;
-                }
-                if (data.words && data.words.length > 0) {
-                    let html = '';
-                    if (data.words_by_language) {
-                        ['en', 'es', 'hi'].forEach(lang => {
-                            if (data.words_by_language[lang] && data.words_by_language[lang].length > 0) {
-                                            html += '<div style="margin: 8px 0;"><strong>' + lang.toUpperCase() + ':</strong> ';
-                                html += data.words_by_language[lang].map(word => 
-                                    '<span class="pill" onclick="validateWord(\'' + word + '\', \'' + lang + '\')">' + word + '</span>'
-                                ).join('');
-                                html += '</div>';
-                            }
-                        });
-                    } else {
-                        html = data.words.map(word => '<span class="pill" onclick="validateWord(\'' + word + '\', \'en\')">' + word + '</span>').join('');
-                    }
-                    html += '<div style="margin-top: 8px; font-size: 11px; color: var(--muted);">' + data.message + '</div>';
-                    box.innerHTML = html;
-                } else {
-                    box.innerHTML = 'No words generated. Try speaking more to build vocabulary.';
-                }
-            } catch (error) {
-                document.getElementById('generatedVocab').innerHTML = `<div style="color: #ef4444;">Error: ${error.message}</div>`;
+            if (data.recording) {
+                isRecording = true;
+                document.getElementById('mic-btn').classList.add('listening');
+                document.getElementById('status-text').innerText = "Listening... Speak now";
             }
-        }
+        } catch (e) { }
+    }
 
-        async function validateWord(word, lang = 'en') {
-            await fetch(`/validate_word?word=${word}&lang=${lang}`);
-            alert(`Word "${word}" (${lang.toUpperCase()}) validated!`);
-        }
+    async function loadLesson() {
+        try {
+            const res = await fetch('/chatbot/lesson?user=default_user');
+            const data = await res.json();
+            const lesson = data.lesson;
 
-        function clearTutorData() {
-            if (confirm('Clear ALL tutor data?')) {
-                fetch('/api/clear_tutor_all', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                        document.getElementById('tutorStatus').textContent = data.message;
-                        refresh();
+            if (lesson) {
+                document.getElementById('lesson-objective').innerText = lesson.title || "Practice Session";
+                let html = `<div>${lesson.adaptive_note || ""}</div>`;
+
+                if (lesson.exercises) {
+                    html += '<ul style="padding-left: 1.2rem; margin-top: 0.5rem;">';
+                    lesson.exercises.forEach(ex => {
+                        html += `<li>${ex.instruction || ex.type}</li>`;
                     });
-            }
-        }
-
-        function clearNewWords() {
-            if (confirm('Clear new words only?')) {
-                fetch('/api/clear_tutor_new_words', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                        document.getElementById('tutorStatus').textContent = data.message;
-                        refresh();
-                    });
-            }
-        }
-
-        function clearOOVWords() {
-            if (confirm('Clear OOV words only?')) {
-                fetch('/api/clear_tutor_oov', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                        document.getElementById('tutorStatus').textContent = data.message;
-                        refresh();
-                    });
-            }
-        }
-
-        function clearAllAndFresh() {
-            if (confirm('COMPLETE FRESH START - Clear everything?')) {
-                fetch('/api/clear_all_data', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                        document.getElementById('tutorStatus').textContent = 'Fresh start complete!';
-                        refresh();
-                    });
-            }
-        }
-
-        let autoGenInterval;
-        let isAutoGenerating = false;
-
-        async function generateVocab() {
-            try {
-                const res = await fetch('/api/vocabulary_bank');
-                const data = await res.json();
-                console.log('Generated:', data.message);
-                loadStoredVocab();
-            } catch (error) {
-                console.error('Generation error:', error);
-            }
-        }
-
-        function toggleAutoGeneration() {
-            const button = document.querySelector('button[onclick="toggleAutoGeneration()"]');
-            if (isAutoGenerating) {
-                clearInterval(autoGenInterval);
-                isAutoGenerating = false;
-                button.textContent = '📚 Generate New Words';
-                button.style.background = 'var(--accent)';
-            } else {
-                isAutoGenerating = true;
-                button.textContent = '⏸️ Stop Auto Generation';
-                button.style.background = '#dc3545';
-                generateVocab();
-                autoGenInterval = setInterval(generateVocab, 3000);
-            }
-        }
-
-        async function loadStoredVocab() {
-            try {
-                const res = await fetch('/api/get_stored_vocab_bank');
-                const data = await res.json();
-                const box = document.getElementById('generatedVocab');
-                
-                if (data.length === 0) {
-                    box.innerHTML = 'No vocabulary generated yet. Click generate to start.';
-                    return;
+                    html += '</ul>';
                 }
-                
-                // Group by language
-                const byLang = {en: [], es: [], hi: []};
-                data.forEach(item => {
-                    const word = item.word;
-                    if (word.match(/[\u0900-\u097F]/)) {
-                        byLang.hi.push(word);
-                    } else if (word.match(/[áéíóúüñ]/)) {
-                        byLang.es.push(word);
-                    } else {
-                        byLang.en.push(word);
-                    }
-                });
-                
-                let html = '<div style="margin-bottom: 8px; font-weight: bold;">All Generated Vocabulary (' + data.length + ' words):</div>';
-                ['en', 'es', 'hi'].forEach(lang => {
-                    if (byLang[lang].length > 0) {
-                        html += '<div style="margin: 8px 0;"><strong>' + lang.toUpperCase() + ' (' + byLang[lang].length + '):</strong><br>';
-                        html += byLang[lang].map(word => 
-                            '<span class="pill" onclick="validateWord(\'' + word + '\', \'' + lang + '\')" style="margin: 2px; display: inline-block;">' + word + '</span>'
-                        ).join('');
-                        html += '</div>';
-                    }
-                });
-                
-                box.innerHTML = html;
-            } catch (error) {
-                console.error('Error loading stored vocab:', error);
+
+                document.getElementById('lesson-content').innerHTML = html;
             }
+        } catch (e) {
+            console.error("Lesson load failed", e);
         }
+    }
 
-        function refresh() {
-            fetchNewWords();
-            fetchOOV();
-            fetchChallenge();
-            fetchStats();
-            loadStoredVocab();
+    async function fetchTranscripts() {
+        try {
+            // Using existing /data endpoint
+            const res = await fetch('/data?limit=5');
+            const data = await res.json();
+            // data is list of {timestamp, language, text, audio_file}
+
+            if (!data || data.length === 0) return;
+
+            // Check if we have new items
+            // Assuming timestamp helps us sort, but ideally we'd have IDs. 
+            // For now, let's just grab the latest and if it's different from what we displayed last...
+            // A simple logic: display the latest one if it happened recently (within last 3 secs)
+            // Or just render the whole list? No, chat box should append.
+            // Let's rely on the first item being the newest.
+
+            const latest = data[0];
+            const latestKey = latest.timestamp + latest.text; // rudimentary ID
+
+            if (window._lastDisp !== latestKey) {
+                window._lastDisp = latestKey;
+                addMessage(latest.text, 'user', latest.language);
+
+                // Trigger analysis update for this new text
+                updateAnalysis(latest);
+            }
+
+        } catch (e) {
+            console.error(e);
         }
+    }
 
-        refresh();
-        setInterval(refresh, 10000);
-    </script>
-</body>
-</html>
+    function addMessage(text, type, lang) {
+        const box = document.getElementById('chat-box');
+        const d = document.createElement('div');
+        d.className = `message msg-${type}`;
+        d.innerHTML = `
+            ${text}
+            <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.25rem;">
+                ${lang ? lang.toUpperCase() : ''} • Just now
+            </div>
+        `;
+        box.appendChild(d);
+        box.scrollTop = box.scrollHeight;
 
+        // Simulate Tutor reply occasionally
+        if (type === 'user') {
+            setTimeout(() => {
+                // If it's a known language, give positive feedback
+                if (['en', 'es', 'hi'].includes(lang)) {
+                    // This is mockup logic for the UI to feel alive. 
+                    // Ideally the backend would push this via socket or polling.
+                }
+            }, 1000);
+        }
+    }
+
+    async function updateAnalysis(transcript) {
+        // Here we could call an endpoint to see analyzed breakdown of the specific text
+        // Or just update general stats
+        document.getElementById('lang-indicator').innerText = transcript.language ? transcript.language.toUpperCase() : 'Unknown';
+        document.getElementById('lang-indicator').className = `badge badge-${transcript.language === 'unknown' ? 'warning' : 'success'}`;
+
+        const res = await fetch('/chatbot/stats?user=default_user');
+        const data = await res.json();
+        const stats = data.stats || {};
+
+        // Sum total words
+        let total = 0;
+        Object.values(stats).forEach(s => total += (s.vocabulary_size || 0));
+        document.getElementById('session-words').innerText = `${total} Words Learned Total`;
+    }
+</script>
+{% endblock %}

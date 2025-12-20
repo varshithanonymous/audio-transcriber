@@ -1,237 +1,198 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg: #f7f9fc;
-            --panel: #ffffff;
-            --border: #e5e7eb;
-            --text: #111827;
-            --muted: #6b7280;
-            --accent: #2563eb;
-            --accent2: #10b981;
-        }
-        * { box-sizing: border-box; }
-        body {
-            font-family: "Inter", "Segoe UI", Arial, sans-serif;
-            background: radial-gradient(circle at 10% 20%, rgba(37,99,235,0.08), transparent 24%),
-                        radial-gradient(circle at 80% 0%, rgba(16,185,129,0.08), transparent 26%),
-                        var(--bg);
-            margin: 0; padding: 28px; color: var(--text);
-        }
-        .wrap { max-width: 1200px; margin: auto; }
-        nav a { margin-right: 12px; color: var(--text); text-decoration: none; font-weight: 600; }
-        h1 { margin: 0 0 6px; }
-        .muted { color: var(--muted); font-size: 13px; }
-        .pill { display: inline-block; padding: 6px 10px; background: rgba(37,99,235,0.1); border: 1px solid rgba(37,99,235,0.18); color: var(--text); border-radius: 12px; margin: 3px; font-size: 13px; cursor: pointer; }
-        .pill.disabled { opacity: 0.4; pointer-events: none; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-        .card {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 14px;
-            box-shadow: 0 10px 35px rgba(15,23,42,0.08);
-        }
-        .xp { font-size: 30px; font-weight: 700; color: var(--accent); }
-        .stat { margin-bottom: 8px; }
-        .hero {
-            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
-            padding: 14px; border-radius: 14px; margin-bottom: 16px;
-            background: linear-gradient(120deg, rgba(37,99,235,0.12), rgba(16,185,129,0.12));
-            border: 1px solid var(--border);
-        }
-        .tag { padding: 6px 10px; border-radius: 999px; background: #eef2ff; font-size: 12px; color: #1f2937; border: 1px solid var(--border); }
-        canvas { background: #f8fafc; border-radius: 12px; }
-        #congrats { position: fixed; top: 20px; right: 20px; background: #10b981; color: #fff; padding: 12px 16px; border-radius: 12px; box-shadow: 0 10px 30px rgba(16,185,129,0.35); display: none; z-index: 50; font-weight: 700; }
-    </style>
-</head>
-<body>
-        <div id="congrats">+10 XP 🎉 Great job!</div>
-        <div class="wrap">
-        <nav>
-            <a href="/">Home</a>
-            <a href="/transcription">Transcription</a>
-            <a href="/dataset">Dataset</a>
-            <a href="/tutor">Tutor</a>
-            <a href="/validation_page">Validation</a>
-        </nav>
+{% extends "base.html" %}
 
-        <div class="hero">
-            <div>
-                <h1>Learning Dashboard</h1>
-                <div class="muted">XP snapshot, fresh lesson, challenge, and 3 words to learn.</div>
-            </div>
-            <div class="tag" id="streak">Loading…</div>
+{% block title %}Dashboard - LinguaVoice{% endblock %}
+
+{% block content %}
+<div style="max-width: 1000px;">
+    <div class="flex-between mb-4">
+        <div>
+            <h1>Dashboard</h1>
+            <p style="color: var(--text-muted);">Overview of your learning progress</p>
         </div>
+        <a href="/tutor" class="btn btn-primary">Start New Lesson ➔</a>
+    </div>
 
-        <div class="grid">
-            <div class="card">
-                <h3>XP & Level</h3>
-                <div id="xpBlock" class="xp">Loading…</div>
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-4 mb-4">
+        <div class="card" style="margin-bottom:0;">
+            <div class="stat-label">Total XP</div>
+            <div class="stat-value" id="total_xp">0</div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+            <div class="stat-label">Daily Streak</div>
+            <div class="stat-value" id="streak">0</div>
+            <div style="font-size:0.8rem; color: var(--text-muted);">days</div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+            <div class="stat-label">Words Learned</div>
+            <div class="stat-value" id="total_words">0</div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+            <div class="stat-label">Current Level</div>
+            <div class="stat-value" id="current_level" style="font-size: 1.5rem;">Beginner</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2">
+        <!-- Daily Challenge -->
+        <div class="card">
+            <div class="flex-between">
+                <h2>🎯 Daily Challenge</h2>
+                <span class="badge badge-primary" id="challenge_reward">50 XP</span>
             </div>
-            <div class="card">
-                <h3>3 Words to Learn</h3>
-                <div id="threeWords" class="muted">Loading…</div>
-            </div>
-            <div class="card">
-                <h3>New Lesson</h3>
-                <div id="lesson" class="muted">Loading…</div>
-            </div>
-            <div class="card">
-                <h3>Daily Challenge</h3>
-                <div id="challenge" class="muted">Loading…</div>
-            </div>
-            <div class="card">
-                <h3>Stats by Language</h3>
-                <div id="stats" class="muted">Loading…</div>
+            <div id="challenge_content" class="text-center p-4">
+                <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;" id="challenge_title">Loading...
+                </div>
+                <p id="challenge_desc" style="color: var(--text-muted);">Getting your challenge ready...</p>
+                <div style="margin-top: 1rem;">
+                    <div
+                        style="background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden; margin: 0 auto; max-width: 200px;">
+                        <div id="challenge_progress" style="background: var(--primary); width: 0%; height: 100%;"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <h2 style="margin-top:18px;">Analytics</h2>
-        <div class="grid">
-            <div class="card">
-                <h3>XP by Language</h3>
-                <canvas id="xpChart" height="200"></canvas>
-            </div>
-            <div class="card">
-                <h3>New Words (last 7 days)</h3>
-                <canvas id="wordsChart" height="200"></canvas>
-            </div>
-            <div class="card">
-                <h3>OOV by Language</h3>
-                <canvas id="oovChart" height="200"></canvas>
+        <!-- Recent Activity Chart -->
+        <div class="card">
+            <h2>📈 Activity (New Words)</h2>
+            <div style="height: 200px;">
+                <canvas id="activityChart"></canvas>
             </div>
         </div>
     </div>
 
-    <script>
-        async function loadStats() {
-            const res = await fetch("/chatbot/stats");
-            const data = await res.json();
-            const stats = data.stats || {};
-            let lines = [];
-            let topLang = null;
-            Object.keys(stats).forEach(lang => {
-                const s = stats[lang];
-                lines.push(`<div class="stat"><strong>${lang}</strong>: level ${s.level || s[1] || "beginner"}, XP ${s.total_xp || s.xp || 0}, streak ${s.streak_days || s.streak || 0}d</div>`);
-                if (!topLang || (s.total_xp || s.xp || 0) > (stats[topLang].total_xp || stats[topLang].xp || 0)) topLang = lang;
+    <!-- Suggested Words / Quick Actions -->
+    <div class="card">
+        <h2>💡 Recommended for you</h2>
+        <div class="grid grid-cols-3" id="threeWords">
+            <!-- Populated by JS -->
+            <div style="color: var(--text-muted);">Loading recommendations...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDashboardData();
+    });
+
+    async function loadDashboardData() {
+        try {
+            // 1. Load Stats
+            const statsRes = await fetch("/chatbot/stats?user=default_user");
+            const statsData = await statsRes.json();
+            const stats = statsData.stats || {};
+
+            // Aggregate if multiple languages, or pick top. For now simplicity: sum XP
+            let totalXP = 0;
+            let maxStreak = 0;
+            let totalWords = 0;
+            let level = 'Beginner';
+
+            // stats is keyed by language code 'en', 'es', etc.
+            Object.values(stats).forEach(s => {
+                totalXP += (s.total_xp || s.xp || 0);
+                if ((s.streak_days || s.streak) > maxStreak) maxStreak = (s.streak_days || s.streak);
+                totalWords += (s.vocabulary_size || 0);
+                // Simple level logic
+                level = s.level || level;
             });
-            document.getElementById("stats").innerHTML = lines.join("") || "No stats yet.";
-            if (topLang) {
-                const top = stats[topLang];
-                document.getElementById("xpBlock").innerHTML = `${top.total_xp || top.xp || 0} XP`;
-                document.getElementById("streak").innerHTML = `Language: ${topLang} • Level: ${top.level || "beginner"} • Streak: ${top.streak_days || top.streak || 0} days`;
-            } else {
-                document.getElementById("xpBlock").innerHTML = "0 XP";
-                document.getElementById("streak").innerHTML = "";
+
+            document.getElementById('total_xp').innerText = totalXP;
+            document.getElementById('streak').innerText = maxStreak;
+            document.getElementById('total_words').innerText = totalWords;
+            document.getElementById('current_level').innerText = level.charAt(0).toUpperCase() + level.slice(1);
+
+            // 2. Load Challenge
+            const challengeRes = await fetch("/chatbot/daily_challenge?user=default_user&lang=en"); // Defaulting to EN for dashboard summary
+            const challengeData = await challengeRes.json();
+            const c = challengeData.challenge;
+
+            if (c) {
+                document.getElementById('challenge_title').innerText = c.title || "Daily Goal";
+                document.getElementById('challenge_desc').innerText = `Target: ${c.target}`;
+                document.getElementById('challenge_reward').innerText = `+${c.xp_reward} XP`;
+                // Mock progress for now as API doesn't return current progress on this endpoint
+                document.getElementById('challenge_progress').style.width = '30%';
             }
-        }
 
-        let learnedWords = new Set(JSON.parse(localStorage.getItem("learned_words") || "[]"));
-
-        async function loadThreeWords() {
-            const res = await fetch("/chatbot/new_words?days=7");
-            const data = await res.json();
-            const words = [];
-            Object.values(data.by_date || {}).forEach(list => list.forEach(w => words.push(w)));
-            const pick = words.slice(0, 3);
-            document.getElementById("threeWords").innerHTML = pick.length
-                ? pick.map(w => {
-                    const key = `${w.language}:${w.word}`;
-                    const disabled = learnedWords.has(key) ? "disabled" : "";
-                    return `<span class="pill ${disabled}" data-key="${key}" onclick="markLearned('${w.word}','${w.language}', this)">${w.word} (${w.language})</span>`;
-                  }).join("")
-                : "No new words yet.";
-        }
-
-        async function loadLesson() {
-            const res = await fetch("/chatbot/lesson");
-            const data = await res.json();
-            const lesson = data.lesson || {};
-            document.getElementById("lesson").innerHTML = `<div><strong>${lesson.title || "Lesson"}</strong></div><div>${lesson.adaptive_note || lesson.level || ""}</div>`;
-        }
-
-        async function loadChallenge() {
-            const res = await fetch("/chatbot/daily_challenge");
-            const data = await res.json();
-            const c = data.challenge || {};
-            document.getElementById("challenge").innerHTML = `<div><strong>${c.title || "Challenge"}</strong></div><div>Goal: ${c.target || "-"} | XP: ${c.xp_reward || 0}</div>`;
-        }
-
-        function refresh() {
-            loadStats();
-            loadThreeWords();
-            loadLesson();
-            loadChallenge();
+            // 3. Load Chart
             loadCharts();
+
+            // 4. Load Recommendations
+            loadRecommendations();
+
+        } catch (e) {
+            console.error("Error loading dashboard:", e);
+        }
+    }
+
+    async function loadCharts() {
+        const res = await fetch("/chatbot/analytics?user=default_user");
+        const data = await res.json();
+
+        const ctx = document.getElementById('activityChart').getContext('2d');
+        const labels = Object.keys(data.new_words_by_day || {}).sort();
+        const values = labels.map(k => data.new_words_by_day[k]);
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels.map(d => d.substring(5)), // MM-DD
+                datasets: [{
+                    label: 'New Words',
+                    data: values,
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    async function loadRecommendations() {
+        const res = await fetch("/chatbot/new_words?days=7&user=default_user");
+        const data = await res.json();
+        const container = document.getElementById('threeWords');
+        container.innerHTML = '';
+
+        let count = 0;
+        // Flatten words
+        const all = [];
+        Object.values(data.by_date || {}).forEach(list => {
+            list.forEach(item => all.push(item));
+        });
+
+        // Take last 3
+        const recent = all.slice(0, 3);
+
+        if (recent.length === 0) {
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">Start a lesson to see words here!</div>';
+            return;
         }
 
-        refresh();
-        setInterval(refresh, 10000);
-
-        // Charts
-        let xpChart, wordsChart, oovChart;
-        function renderChart(ctx, labels, data, title, color) {
-            return new Chart(ctx, {
-                type: 'bar',
-                data: { labels, datasets: [{ label: title, data, backgroundColor: color }] },
-                options: { responsive: true, plugins: { legend: { display: false } } }
-            });
-        }
-
-        async function loadCharts() {
-            const res = await fetch("/chatbot/analytics");
-            const data = await res.json();
-
-            const xpLabels = Object.keys(data.xp_by_lang || {});
-            const xpData = xpLabels.map(k => data.xp_by_lang[k]);
-            if (xpChart) xpChart.destroy();
-            xpChart = renderChart(document.getElementById("xpChart"), xpLabels, xpData, "XP", "#0d6efd");
-
-            const wordLabels = Object.keys(data.new_words_by_day || {}).sort();
-            const wordData = wordLabels.map(k => data.new_words_by_day[k]);
-            if (wordsChart) wordsChart.destroy();
-            wordsChart = renderChart(document.getElementById("wordsChart"), wordLabels, wordData, "New Words", "#22c55e");
-
-            const oovLabels = Object.keys(data.oov_by_lang || {});
-            const oovData = oovLabels.map(k => data.oov_by_lang[k]);
-            if (oovChart) oovChart.destroy();
-            oovChart = renderChart(document.getElementById("oovChart"), oovLabels, oovData, "OOV", "#f97316");
-        }
-
-        async function markLearned(word, lang, el) {
-            const key = `${lang}:${word}`;
-            if (learnedWords.has(key)) return;
-            await fetch("/chatbot/record_performance", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    user: "default_user",
-                    word,
-                    lang,
-                    lesson_type: "vocabulary",
-                    response_time: 0.5,
-                    is_correct: true,
-                    difficulty_level: "beginner"
-                })
-            });
-            showCongrats();
-            learnedWords.add(key);
-            localStorage.setItem("learned_words", JSON.stringify([...learnedWords]));
-            if (el) el.classList.add("disabled");
-            refresh();
-        }
-
-        function showCongrats() {
-            const c = document.getElementById("congrats");
-            c.style.display = "block";
-            clearTimeout(window.__cong);
-            window.__cong = setTimeout(() => c.style.display = "none", 1800);
-        }
-    </script>
-</body>
-</html>
-
+        recent.forEach(w => {
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.style.marginBottom = '0';
+            el.style.textAlign = 'center';
+            el.style.padding = '1rem';
+            el.innerHTML = `
+                <div style="font-weight: 600; font-size: 1.1rem;">${w.word}</div>
+                <div class="badge badge-primary" style="margin-top: 0.5rem; text-transform: uppercase;">${w.language}</div>
+            `;
+            container.appendChild(el);
+        });
+    }
+</script>
+{% endblock %}

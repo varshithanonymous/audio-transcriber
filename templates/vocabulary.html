@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Vocabulary Bank - LinguaVoice{% endblock %}
+
+{% block content %}
+<div>
+    <div class="flex-between mb-4">
+        <div>
+            <h1>Vocabulary Bank</h1>
+            <p style="color: var(--text-muted);">
+                <span id="gen-status">Generates 5 new words every 3 seconds automatically.</span>
+            </p>
+        </div>
+        <div>
+            <button class="btn btn-outline" onclick="toggleAuto()" id="toggle-btn">⏸ Pause Generation</button>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem;">
+        <button class="btn btn-outline" style="border:none; border-bottom: 2px solid var(--primary); border-radius: 0;"
+            id="tab-spoken" onclick="switchVocabTab('spoken')">My Spoken Words</button>
+        <button class="btn btn-outline" style="border:none; border-bottom: 2px solid transparent; border-radius: 0;"
+            id="tab-incremental" onclick="switchVocabTab('incremental')">Incremental Learning (Related)</button>
+    </div>
+
+    <!-- Spoken Words View -->
+    <div id="view-spoken">
+        <div class="grid grid-cols-4" id="spoken-grid">
+            <div class="card col-span-4 text-center">Loading your spoken words...</div>
+        </div>
+    </div>
+
+    <!-- Incremental Bank View -->
+    <div id="view-incremental" style="display:none;">
+        <div class="grid grid-cols-4" id="bank-grid">
+            <div class="card col-span-4 text-center">Starting generator...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Meaning Modal -->
+<div id="meaning-modal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center;">
+    <div class="card" style="width: 400px; max-width: 90%;">
+        <div class="flex-between mb-4">
+            <h2 id="modal-word">Word</h2>
+            <button onclick="closeModal()" class="btn btn-outline" style="border:none; padding: 0.5rem;">✕</button>
+        </div>
+        <div id="modal-content" style="margin-bottom: 2rem; line-height: 1.6;">Meaning goes here...</div>
+        <button onclick="closeModal()" class="btn btn-primary" style="width: 100%;">Close</button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let isAutoGenerating = true;
+    let generateInterval;
+    let currentVocabTab = 'spoken';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSpokenWords();
+        loadBankWords();
+        startAutoGeneration();
+    });
+
+    function switchVocabTab(tab) {
+        currentVocabTab = tab;
+        document.getElementById('tab-spoken').style.borderBottomColor = tab === 'spoken' ? 'var(--primary)' : 'transparent';
+        document.getElementById('tab-incremental').style.borderBottomColor = tab === 'incremental' ? 'var(--primary)' : 'transparent';
+
+        document.getElementById('view-spoken').style.display = tab === 'spoken' ? 'block' : 'none';
+        document.getElementById('view-incremental').style.display = tab === 'incremental' ? 'block' : 'none';
+
+        if (tab === 'spoken') loadSpokenWords();
+    }
+
+    async function loadSpokenWords() {
+        try {
+            const res = await fetch("/api/get_my_spoken_words");
+            const data = await res.json();
+            const grid = document.getElementById('spoken-grid');
+
+            if (data.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted);">No spoken words recorded yet. Start talking to the Tutor!</div>';
+                return;
+            }
+
+            grid.innerHTML = data.map(item => `
+                <div class="card" style="margin-bottom:0; cursor: pointer; transition: transform 0.2s;" onclick="showMeaning('${item.word}', '${item.language}', '${item.meaning ? item.meaning.replace(/'/g, "\\'") : ''}')">
+                    <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;">${item.word}</div>
+                    <div class="flex-between">
+                        <span class="badge badge-primary">${item.language}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">${item.date ? item.date.split(' ')[0] : ''}</span>
+                    </div>
+                </div>
+            `).join("");
+        } catch (e) {
+            console.error("Spoken load error", e);
+        }
+    }
+
+    function toggleAuto() {
+        isAutoGenerating = !isAutoGenerating;
+        const btn = document.getElementById('toggle-btn');
+        const status = document.getElementById('gen-status');
+
+        if (isAutoGenerating) {
+            btn.innerText = "⏸ Pause Generation";
+            status.innerText = "Generating related words based on your speech...";
+            startAutoGeneration();
+        } else {
+            btn.innerText = "▶ Resume Generation";
+            status.innerText = "Generation paused.";
+            clearInterval(generateInterval);
+        }
+    }
+
+    function startAutoGeneration() {
+        if (generateInterval) clearInterval(generateInterval);
+        generateInterval = setInterval(async () => {
+            if (!isAutoGenerating) return;
+            try {
+                const res = await fetch("/api/auto_generate_vocab");
+                const newItems = await res.json();
+
+                if (newItems && newItems.length > 0) {
+                    const grid = document.getElementById('bank-grid');
+                    if (grid.innerText.includes('Starting') || grid.innerText.includes('Waiting')) {
+                        grid.innerHTML = '';
+                    }
+
+                    newItems.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.style = "margin-bottom:0; cursor: pointer; transition: transform 0.2s; animation: fadeIn 0.5s;";
+                        if (item.source.includes("Because you said")) {
+                            card.style.border = "1px solid var(--primary)";
+                        }
+
+                        card.onclick = () => showMeaning(item.word, item.language, item.meaning);
+                        card.innerHTML = `
+                            <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;">${item.word}</div>
+                            <div class="flex-between">
+                                <span class="badge badge-primary">${item.language}</span>
+                            </div>
+                             <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:0.5rem;">${item.source}</div>
+                        `;
+                        grid.insertBefore(card, grid.firstChild);
+
+                        if (grid.children.length > 50) {
+                            grid.removeChild(grid.lastChild);
+                        }
+                    });
+
+                    if (currentVocabTab === 'incremental') {
+                        showToast(`Generated ${newItems.length} new words`, "success");
+                    }
+                }
+            } catch (e) {
+                console.error("Gen error", e);
+            }
+        }, 3000);
+    }
+
+    async function loadBankWords() {
+        try {
+            const res = await fetch("/api/get_vocabulary_bank_full");
+            const data = await res.json();
+
+            const grid = document.getElementById('bank-grid');
+            if (data.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem;">Waiting for words...</div>';
+                return;
+            }
+
+            grid.innerHTML = data.map(item => `
+                <div class="card" style="margin-bottom:0; cursor: pointer; transition: transform 0.2s;" onclick="showMeaning('${item.word}', '${item.language}', '${item.meaning ? item.meaning.replace(/'/g, "\\'") : ''}')">
+                    <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;">${item.word}</div>
+                    <div class="flex-between">
+                        <span class="badge badge-primary">${item.language}</span>
+                    </div>
+                     <div style="font-size: 0.75rem; color: var(--text-muted); margin-top:0.5rem;">${item.source || 'Auto-Generator'}</div>
+                </div>
+            `).join("");
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function showMeaning(word, lang, existingMeaning = null) {
+        const modal = document.getElementById('meaning-modal');
+        const title = document.getElementById('modal-word');
+        const content = document.getElementById('modal-content');
+
+        modal.style.display = 'flex';
+        title.innerText = word;
+
+        if (existingMeaning && existingMeaning !== 'None') {
+            content.innerText = existingMeaning;
+            return;
+        }
+
+        content.innerText = "Loading meaning...";
+
+        try {
+            const res = await fetch(`/validate_word?word=${word}&lang=${lang}&user=default_user`);
+            const data = await res.json();
+            if (data.meaning) {
+                content.innerText = data.meaning;
+            } else {
+                content.innerText = "Meaning not found or lookup failed.";
+            }
+        } catch (e) {
+            content.innerText = "Error fetching meaning.";
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('meaning-modal').style.display = 'none';
+    }
+</script>
+{% endblock %}

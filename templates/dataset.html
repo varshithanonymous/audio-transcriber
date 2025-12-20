@@ -1,45 +1,48 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dataset</title>
-    <style>
-        :root {
-            --bg: #0f172a;
-            --panel: rgba(255,255,255,0.05);
-            --border: rgba(255,255,255,0.08);
-            --text: #e2e8f0;
-            --muted: #94a3b8;
-        }
-        body { font-family: "Inter","Segoe UI",Arial,sans-serif; background: var(--bg); margin: 0; padding: 28px; color: var(--text); }
-        .wrap { max-width: 1100px; margin: auto; }
-        .card { background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.35); }
-        .entry { padding: 8px 0; border-bottom: 1px solid var(--border); }
-        .muted { color: var(--muted); }
-        nav a { margin-right: 12px; color: var(--text); text-decoration: none; }
-    </style>
-</head>
-<body>
-    <div class="wrap">
-        <nav>
-            <a href="/">Home</a>
-            <a href="/transcription">Transcription</a>
-            <a href="/tutor">Tutor</a>
-            <a href="/validation_page">Validation</a>
-        </nav>
-        <h1>Full Dataset</h1>
-        <p class="muted">Latest 200 items stored locally.</p>
-        <div class="card" id="dataset">Loading…</div>
+{% extends "base.html" %}
+
+{% block title %}Dataset - LinguaVoice{% endblock %}
+
+{% block content %}
+<div>
+    <h1>Dataset</h1>
+    <p style="color: var(--text-muted); margin-bottom: 2rem;">Full history of your transcriptions and audio clips.</p>
+
+    <div class="card">
+        <div id="dataset-list">
+            Loading data...
+        </div>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-        async function loadData() {
-            const res = await fetch("/data?lang=all&limit=200");
-            const data = await res.json();
-            const box = document.getElementById("dataset");
-            box.innerHTML = data.map(item => `<div class="entry"><strong>${item.timestamp}</strong> [${item.language}] — ${item.text}</div>`).join("") || "No data yet.";
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', loadData);
+
+    async function loadData() {
+        const res = await fetch("/data?lang=all&limit=50");
+        const data = await res.json();
+        const box = document.getElementById("dataset-list");
+
+        if (!data || data.length === 0) {
+            box.innerHTML = '<div class="text-center p-4">No recordings found.</div>';
+            return;
         }
-        loadData();
-    </script>
-</body>
-</html>
 
+        box.innerHTML = data.map(item => `
+            <div style="padding: 1rem 0; border-bottom: 1px solid var(--border); display: flex; gap: 1rem; align-items: start;">
+                 <div style="min-width: 140px; color: var(--text-muted); font-size: 0.9rem;">
+                    ${item.timestamp}
+                 </div>
+                 <div style="flex: 1;">
+                    <div style="margin-bottom: 0.25rem;">
+                        <span class="badge badge-primary">${item.language}</span>
+                    </div>
+                    <div style="line-height: 1.5;">${item.text}</div>
+                    ${item.audio_file ? `<div style="margin-top:0.5rem; font-size:0.8rem; color: var(--primary);">🎵 Saved as ${item.audio_file.split(/[\\/]/).pop()}</div>` : ''}
+                 </div>
+            </div>
+        `).join("");
+    }
+</script>
+{% endblock %}

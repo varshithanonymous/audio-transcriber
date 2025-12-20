@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Audio Learning Platform{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <span style="font-size: 1.5rem;">🎙️</span> LinguaVoice
+            </div>
+
+            <nav>
+                <ul class="nav-links">
+                    <li>
+                        <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+                            <span>📊</span> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/tutor" class="nav-link {% if request.path == '/tutor' %}active{% endif %}">
+                            <span>🎓</span> AI Tutor
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/vocabulary" class="nav-link {% if request.path == '/vocabulary' %}active{% endif %}">
+                            <span>📚</span> Vocabulary Bank
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/dataset" class="nav-link {% if request.path == '/dataset' %}active{% endif %}">
+                            <span>📁</span> My Data (Transcripts)
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/validation_page"
+                            class="nav-link {% if request.path == '/validation_page' %}active{% endif %}">
+                            <span>✅</span> Validation
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div style="margin-top: auto;">
+                <div class="card" style="padding: 1rem; margin-bottom: 0; background: #f8fafc;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Current User</div>
+                    <div style="font-weight: 600;">default_user</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Global Scripts -->
+    <script>
+        // Simple Toast Notification
+        function showToast(message, type = 'info') {
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            if (type === 'success') toast.style.borderLeftColor = 'var(--success)';
+            if (type === 'error') toast.style.borderLeftColor = 'var(--danger)';
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

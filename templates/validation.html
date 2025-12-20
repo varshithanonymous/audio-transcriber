@@ -1,593 +1,116 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Word Validation</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; }
-        .header { background: #28a745; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        .nav { margin-bottom: 20px; }
-        .nav a { background: #6c757d; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin-right: 10px; }
-        .nav a:hover { background: #495057; }
-        .section { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
-        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
-        .validate-btn { background: #007BFF; color: white; }
-        .validate-btn:hover { background: #0056b3; }
-        .download-btn { background: #28a745; color: white; }
-        .download-btn:hover { background: #218838; }
-        .auto-btn { background: #17a2b8; color: white; }
-        .auto-btn:hover { background: #138496; }
-        input, select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        .status { padding: 10px; border-radius: 5px; margin: 10px 0; }
-        .status.online { background: #d4edda; color: #155724; }
-        .status.offline { background: #f8d7da; color: #721c24; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #f8f9fa; font-weight: bold; }
-        .valid { color: #28a745; font-weight: bold; }
-        .invalid { color: #dc3545; font-weight: bold; }
-        .pending { color: #ffc107; font-weight: bold; }
-        .word-input { width: 200px; }
-        .lang-select { width: 100px; }
-        .new-words { display: flex; flex-wrap: gap: 8px; margin: 15px 0; }
-        .word-chip { background: #e9ecef; padding: 5px 12px; border-radius: 15px; cursor: pointer; font-size: 12px; border: 1px solid #ced4da; }
-        .word-chip:hover { background: #007BFF; color: white; }
-        .loading { color: #6c757d; font-style: italic; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>✅ Word Validation System</h1>
-        <p>Validate words from speech transcription and check their meanings</p>
+{% extends "base.html" %}
+
+{% block title %}Validation - LinguaVoice{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <div>
+        <h1>Word Validation History</h1>
+        <p style="color: var(--text-muted);">Real-time log of all words detected and validated.</p>
     </div>
-    
-    <div class="nav">
-        <a href="/">🏠 Home</a>
-        <a href="/transcription">🎙️ Transcription</a>
-        <a href="/language">🌍 Language Detection</a>
-        <a href="/dashboard">📊 Dashboard</a>
+    <div>
+        <button class="btn btn-outline" style="margin-right: 0.5rem;" onclick="retryValidation()">🔄 Retry
+            Pending</button>
+        <a href="/download/validations" class="btn btn-primary" target="_blank">📥 Download CSV</a>
     </div>
-    
-    <div class="section">
-        <h3>Manual Word Validation</h3>
-        <div class="controls">
-            <input type="text" id="wordInput" class="word-input" placeholder="Enter word to validate">
-            <select id="langSelect" class="lang-select">
-                <option value="en">English</option>
-                <option value="es">Spanish</option>
-                <option value="hi">Hindi</option>
-            </select>
-            <button class="validate-btn" onclick="validateWord()">Validate Word</button>
-        </div>
-        <div id="connectionStatus" class="status">Checking connection...</div>
-        <div id="validationResult"></div>
-    </div>
-    
-    <div class="section">
-        <h3>New Words from Speech</h3>
-        <p>Words detected from your speech that need validation:</p>
-        <button class="auto-btn" onclick="loadNewWords()">🔄 Load New Words</button>
-        <button class="auto-btn" onclick="validateAllNew()">✅ Validate All New</button>
-        <button class="auto-btn" onclick="toggleAutoValidation()" id="autoValidateToggle">▶️ Start Auto Validation</button>
-        <div id="autoValidationStatus" style="margin: 10px 0; padding: 10px; border-radius: 5px; background: #f8f9fa;">Auto validation: Stopped</div>
-        <div id="newWords" class="new-words">
-            <span class="loading">Click "Load New Words" to see unvalidated words...</span>
-        </div>
-    </div>
-    
-    <div class="section">
-        <h3>Adaptive Tutor Controls</h3>
-        <p>Manage your learning data and progress:</p>
-        <button style="background: #dc3545; color: white;" onclick="clearTutorData()">🗑️ Clear All Tutor Data</button>
-        <button style="background: #ffc107; color: black;" onclick="clearNewWords()">🗑️ Clear New Words Only</button>
-        <button style="background: #6f42c1; color: white;" onclick="clearOOVWords()">🗑️ Clear OOV Words Only</button>
-        <button style="background: #28a745; color: white;" onclick="clearAllAndFresh()">🔄 Clear Everything & Fresh Start</button>
-        <div id="tutorStatus" style="margin: 10px 0; padding: 10px; border-radius: 5px; background: #f8f9fa;"></div>
-    </div>
-    
-    <div class="section">
-        <h3>Vocabulary Bank - Incremental Learning</h3>
-        <p>Discover new words based on your validated vocabulary:</p>
-        <button class="auto-btn" onclick="loadVocabularyBank()">📚 Generate Vocabulary Bank</button>
-        <button class="validate-btn" onclick="validateVocabWords()">✅ Validate Selected Vocab</button>
-        <button class="auto-btn" onclick="toggleAutoGeneration()" id="autoGenToggle">▶️ Start Auto Generation</button>
-        <button style="background: #dc3545; color: white;" onclick="clearVocabBank()">🗑️ Clear Vocab Bank</button>
-        <a href="/download/vocab_bank" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; margin: 5px;">📥 Download Vocab Bank</a>
-        <div id="vocabStatus" style="margin: 10px 0; padding: 10px; border-radius: 5px; background: #f8f9fa;"></div>
-        <div id="vocabularyBank" class="new-words"></div>
-    </div>
-    
-    <div class="section">
-        <h3>Validation History</h3>
-        <div class="controls">
-            <button class="download-btn" onclick="downloadValidations()">📥 Download All Validations</button>
-            <button class="validate-btn" onclick="loadValidations()">🔄 Refresh Table</button>
-            <button style="background: #dc3545; color: white;" onclick="clearAllData()">🗑️ Clear All Data</button>
-        </div>
-        
-        <table id="validationTable">
+</div>
+
+<!-- Tabs -->
+<div style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem;">
+    <button class="btn btn-outline" style="border:none; border-bottom: 2px solid var(--primary); border-radius: 0;"
+        id="tab-valid" onclick="switchTab('valid')">Valid Words</button>
+    <button class="btn btn-outline" style="border:none; border-bottom: 2px solid transparent; border-radius: 0;"
+        id="tab-invalid" onclick="switchTab('invalid')">Invalid / Pending</button>
+</div>
+
+<div class="card">
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
-                <tr>
-                    <th>Word</th>
-                    <th>Language</th>
-                    <th>Status</th>
-                    <th>Meaning</th>
-                    <th>Timestamp</th>
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <th style="padding: 1rem;">Time</th>
+                    <th style="padding: 1rem;">Word</th>
+                    <th style="padding: 1rem;">Language</th>
+                    <th style="padding: 1rem;">Meaning / Status</th>
                 </tr>
             </thead>
-            <tbody id="validationTableBody">
-                <tr><td colspan="5" style="text-align: center; color: #6c757d;">Loading validations...</td></tr>
+            <tbody id="validation-table">
+                <tr>
+                    <td colspan="4" style="padding: 2rem; text-align: center; color: var(--text-muted);">Loading log...
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-        let isOnline = false;
+{% block scripts %}
+<script>
+    let currentTab = 'valid';
+    let allLogs = [];
 
-        function checkConnection() {
-            fetch('/validate_word?word=test')
-                .then(response => response.json())
-                .then(data => {
-                    const status = document.getElementById('connectionStatus');
-                    status.className = 'status online';
-                    status.textContent = '🟢 Online - Dictionary API available';
-                })
-                .catch(() => {
-                    const status = document.getElementById('connectionStatus');
-                    status.className = 'status offline';
-                    
-                    // Show pending words count in offline mode
-                    fetch('/api/get_pending_words')
-                        .then(response => response.json())
-                        .then(data => {
-                            status.textContent = `🔴 Offline - ${data.words.length} words pending validation`;
-                        })
-                        .catch(() => {
-                            status.textContent = '🔴 Offline - No internet connection';
-                        });
-                });
-        }
-
-        function validateWord() {
-            const word = document.getElementById('wordInput').value.trim();
-            const lang = document.getElementById('langSelect').value;
-            
-            if (!word) {
-                alert('Please enter a word to validate');
-                return;
-            }
-            
-            const resultDiv = document.getElementById('validationResult');
-            resultDiv.innerHTML = '<div class="loading">Validating...</div>';
-            
-            fetch(`/validate_word?word=${encodeURIComponent(word)}&lang=${lang}`)
-                .then(response => response.json())
-                .then(data => {
-                    const status = data.is_valid ? 
-                        '<span class="valid">✅ Valid</span>' : 
-                        '<span class="invalid">❌ Invalid</span>';
-                    
-                    const connectionInfo = data.cached ? ' (from cache)' : ' (from API)';
-                    
-                    resultDiv.innerHTML = `
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 10px;">
-                            <strong>Word:</strong> ${data.word || word}<br>
-                            <strong>Language:</strong> ${lang.toUpperCase()}<br>
-                            <strong>Status:</strong> ${status}${connectionInfo}<br>
-                            <strong>Meaning:</strong> ${data.meaning || 'Not found'}
-                        </div>
-                    `;
-                    
-                    loadValidations();
-                });
-        }
-
-        function loadNewWords() {
-            fetch('/api/get_new_words')
-                .then(response => response.json())
-                .then(data => {
-                    const container = document.getElementById('newWords');
-                    
-                    if (data.words.length === 0) {
-                        container.innerHTML = '<span class="loading">No new words found. Start transcription to generate new words.</span>';
-                        return;
-                    }
-                    
-                    let html = '';
-                    data.words.forEach(word => {
-                        html += `<span class="word-chip" onclick="validateNewWord('${word}')">${word}</span>`;
-                    });
-                    
-                    container.innerHTML = html;
-                });
-        }
-
-        function validateNewWord(word) {
-            fetch(`/validate_word?word=${encodeURIComponent(word)}&lang=en`)
-                .then(response => response.json())
-                .then(data => {
-                    loadNewWords();
-                    loadValidations();
-                    
-                    const status = data.is_valid ? 'Valid' : 'Invalid';
-                    alert(`Word "${word}" is ${status}${data.meaning ? ': ' + data.meaning : ''}`);
-                });
-        }
-
-        function validateAllNew() {
-            fetch('/api/get_new_words')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.words.length === 0) {
-                        alert('No new words to validate');
-                        return;
-                    }
-                    
-                    const button = event.target;
-                    button.disabled = true;
-                    button.textContent = 'Validating...';
-                    
-                    let completed = 0;
-                    data.words.forEach(word => {
-                        fetch(`/validate_word?word=${encodeURIComponent(word)}&lang=en`)
-                            .then(() => {
-                                completed++;
-                                if (completed === data.words.length) {
-                                    button.disabled = false;
-                                    button.textContent = '✅ Validate All New';
-                                    loadNewWords();
-                                    loadValidations();
-                                    alert(`Validated ${completed} words`);
-                                }
-                            });
-                    });
-                });
-        }
-
-        function loadValidations() {
-            fetch('/api/get_all_words')
-                .then(response => response.json())
-                .then(data => {
-                    const tbody = document.getElementById('validationTableBody');
-                    
-                    if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #6c757d;">No validations found</td></tr>';
-                        return;
-                    }
-                    
-                    let html = '';
-                    data.slice(0, 10).forEach(item => {
-                        const statusClass = item.is_valid ? 'valid' : 'invalid';
-                        const statusText = item.is_valid ? '✅ Valid' : '❌ Invalid';
-                        
-                        html += `
-                            <tr>
-                                <td><strong>${item.word}</strong></td>
-                                <td>${(item.language || 'EN').toUpperCase()}</td>
-                                <td class="${statusClass}">${statusText}</td>
-                                <td>${item.meaning || '-'}</td>
-                                <td>${item.timestamp}</td>
-                            </tr>
-                        `;
-                    });
-                    
-                    tbody.innerHTML = html;
-                });
-        }
-
-        function downloadValidations() {
-            window.location.href = '/download/validations';
-        }
-
-        function clearAllData() {
-            if (confirm('Are you sure you want to delete ALL data? This will clear:\n- All transcriptions\n- All validated words\n- All new words (pending)\n- All OOV words\n- All vocabulary bank data\n- All audio files\n\nThis action cannot be undone!')) {
-                fetch('/api/clear_all_data', { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            alert('All data cleared successfully!');
-                            loadValidations();
-                            loadNewWords();
-                            document.getElementById('vocabularyBank').innerHTML = '';
-                            document.getElementById('vocabStatus').textContent = '';
-                        } else {
-                            alert('Error: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        alert('Error clearing data');
-                    });
-            }
-        }
-
-        // Initialize page
-        checkConnection();
+    document.addEventListener('DOMContentLoaded', () => {
         loadValidations();
-        loadNewWords();
-        
-        let autoValidationInterval;
-        let isAutoValidating = false;
+        setInterval(loadValidations, 2000); // Poll every 2 seconds
+    });
 
-        function toggleAutoValidation() {
-            const button = document.getElementById('autoValidateToggle');
-            const status = document.getElementById('autoValidationStatus');
-            
-            if (isAutoValidating) {
-                clearInterval(autoValidationInterval);
-                isAutoValidating = false;
-                button.textContent = '▶️ Start Auto Validation';
-                button.style.background = '#17a2b8';
-                status.textContent = 'Auto validation: Stopped';
-                status.style.background = '#f8d7da';
-                status.style.color = '#721c24';
-            } else {
-                isAutoValidating = true;
-                button.textContent = '⏸️ Stop Auto Validation';
-                button.style.background = '#dc3545';
-                status.textContent = 'Auto validation: Running (every 4 seconds)';
-                status.style.background = '#d4edda';
-                status.style.color = '#155724';
-                
-                autoValidateNewWords();
-                autoValidationInterval = setInterval(autoValidateNewWords, 4000);
-            }
+    function switchTab(tab) {
+        currentTab = tab;
+        document.getElementById('tab-valid').style.borderBottomColor = tab === 'valid' ? 'var(--primary)' : 'transparent';
+        document.getElementById('tab-invalid').style.borderBottomColor = tab === 'invalid' ? 'var(--danger)' : 'transparent';
+        renderTable();
+    }
+
+    async function loadValidations() {
+        try {
+            const res = await fetch("/api/get_validation_log");
+            const data = await res.json();
+            allLogs = data;
+            renderTable();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function retryValidation() {
+        showToast("Retrying validation for pending words...", "info");
+        try {
+            const res = await fetch("/api/retry_validation");
+            const data = await res.json();
+            showToast(data.message || "Retry initiated", "success");
+            // Refresh table after short delay
+            setTimeout(loadValidations, 3000);
+        } catch (e) {
+            showToast("Failed to initiate retry", "error");
+        }
+    }
+
+    function renderTable() {
+        const table = document.getElementById("validation-table");
+
+        let filtered = [];
+        if (currentTab === 'valid') {
+            filtered = allLogs.filter(item => item.status === 'valid');
+        } else {
+            filtered = allLogs.filter(item => item.status !== 'valid');
         }
 
-        function autoValidateNewWords() {
-            // Check connection first
-            fetch('/validate_word?word=test')
-                .then(response => response.json())
-                .then(connectionData => {
-                    // If online, validate pending words
-                    fetch('/api/get_pending_words')
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.words.length > 0) {
-                                // Validate up to 3 pending words
-                                data.words.slice(0, 3).forEach(word => {
-                                    fetch(`/validate_word?word=${encodeURIComponent(word)}&lang=en`)
-                                        .then(() => {
-                                            loadNewWords();
-                                            loadValidations();
-                                        })
-                                        .catch(() => {
-                                            // If validation fails, continue with next word
-                                        });
-                                });
-                            }
-                        });
-                })
-                .catch(() => {
-                    // If offline, just refresh the word list (words will be stored as pending)
-                    loadNewWords();
-                });
+        if (filtered.length === 0) {
+            table.innerHTML = `<tr><td colspan="4" style="padding: 2rem; text-align: center; color: var(--text-muted);">No ${currentTab} entries found yet.</td></tr>`;
+            return;
         }
 
-        let selectedVocabWords = new Set();
-
-        function loadVocabularyBank() {
-            const status = document.getElementById('vocabStatus');
-            status.textContent = 'Generating vocabulary bank...';
-            status.style.background = '#fff3cd';
-            status.style.color = '#856404';
-            
-            fetch('/api/vocabulary_bank')
-                .then(response => response.json())
-                .then(data => {
-                    const container = document.getElementById('vocabularyBank');
-                    
-                    if (data.error) {
-                        status.textContent = data.error;
-                        status.style.background = '#f8d7da';
-                        status.style.color = '#721c24';
-                        container.innerHTML = '';
-                        return;
-                    }
-                    
-                    if (data.words.length === 0) {
-                        status.textContent = data.message || 'No new vocabulary words generated';
-                        container.innerHTML = '';
-                        return;
-                    }
-                    
-                    status.textContent = `${data.message} (Excluded ${data.excluded_count} existing words)`;
-                    status.style.background = '#d4edda';
-                    status.style.color = '#155724';
-                    
-                    let html = '';
-                    data.words.forEach(word => {
-                        const isSelected = selectedVocabWords.has(word);
-                        const selectedClass = isSelected ? ' style="background: #007BFF; color: white;"' : '';
-                        html += `<span class="word-chip" onclick="toggleVocabWord('${word}')"${selectedClass}>${word}</span>`;
-                    });
-                    
-                    container.innerHTML = html;
-                })
-                .catch(error => {
-                    status.textContent = 'Error generating vocabulary bank';
-                    status.style.background = '#f8d7da';
-                    status.style.color = '#721c24';
-                });
-        }
-
-        function toggleVocabWord(word) {
-            if (selectedVocabWords.has(word)) {
-                selectedVocabWords.delete(word);
-            } else {
-                selectedVocabWords.add(word);
-            }
-            
-            // Update visual selection
-            const chips = document.querySelectorAll('.word-chip');
-            chips.forEach(chip => {
-                if (chip.textContent === word) {
-                    if (selectedVocabWords.has(word)) {
-                        chip.style.background = '#007BFF';
-                        chip.style.color = 'white';
-                    } else {
-                        chip.style.background = '#e9ecef';
-                        chip.style.color = 'black';
-                    }
-                }
-            });
-        }
-
-        function validateVocabWords() {
-            if (selectedVocabWords.size === 0) {
-                alert('Please select some vocabulary words first');
-                return;
-            }
-            
-            const button = event.target;
-            button.disabled = true;
-            button.textContent = 'Validating...';
-            
-            let completed = 0;
-            const totalWords = selectedVocabWords.size;
-            
-            selectedVocabWords.forEach(word => {
-                fetch(`/validate_word?word=${encodeURIComponent(word)}&lang=en`)
-                    .then(() => {
-                        completed++;
-                        if (completed === totalWords) {
-                            button.disabled = false;
-                            button.textContent = '✅ Validate Selected Vocab';
-                            selectedVocabWords.clear();
-                            loadVocabularyBank();
-                            loadValidations();
-                            alert(`Validated ${completed} vocabulary words`);
-                        }
-                    })
-                    .catch(() => {
-                        completed++;
-                        if (completed === totalWords) {
-                            button.disabled = false;
-                            button.textContent = '✅ Validate Selected Vocab';
-                        }
-                    });
-            });
-        }
-
-        let autoGenInterval;
-        let isAutoGenerating = false;
-
-        function toggleAutoGeneration() {
-            const button = document.getElementById('autoGenToggle');
-            
-            if (isAutoGenerating) {
-                clearInterval(autoGenInterval);
-                isAutoGenerating = false;
-                button.textContent = '▶️ Start Auto Generation';
-                button.style.background = '#17a2b8';
-            } else {
-                isAutoGenerating = true;
-                button.textContent = '⏸️ Stop Auto Generation';
-                button.style.background = '#dc3545';
-                
-                // Generate immediately
-                loadVocabularyBank();
-                
-                // Generate every 60 seconds
-                autoGenInterval = setInterval(() => {
-                    loadVocabularyBank();
-                }, 60000);
-            }
-        }
-
-        function clearVocabBank() {
-            if (confirm('Clear all vocabulary bank words?')) {
-                fetch('/api/clear_vocab_bank', { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            alert('Vocabulary bank cleared!');
-                            document.getElementById('vocabularyBank').innerHTML = '';
-                            document.getElementById('vocabStatus').textContent = 'Vocabulary bank cleared';
-                        }
-                    });
-            }
-        }
-
-        function clearTutorData() {
-            if (confirm('Clear ALL tutor data? This will delete:\n- All validated words\n- All vocabulary bank words\n- All user vocabulary\n- All OOV words\n- All performance data\n\nThis gives you a completely fresh start!')) {
-                fetch('/api/clear_tutor_all', { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            alert('All tutor data cleared - fresh start!');
-                            document.getElementById('tutorStatus').textContent = data.message;
-                            document.getElementById('tutorStatus').style.background = '#d4edda';
-                            document.getElementById('tutorStatus').style.color = '#155724';
-                            loadValidations();
-                            loadNewWords();
-                            document.getElementById('vocabularyBank').innerHTML = '';
-                        } else {
-                            alert('Error: ' + data.message);
-                        }
-                    });
-            }
-        }
-
-        function clearNewWords() {
-            if (confirm('Clear new words (user vocabulary) only?')) {
-                fetch('/api/clear_tutor_new_words', { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            alert('New words cleared!');
-                            document.getElementById('tutorStatus').textContent = data.message;
-                            document.getElementById('tutorStatus').style.background = '#fff3cd';
-                            document.getElementById('tutorStatus').style.color = '#856404';
-                        } else {
-                            alert('Error: ' + data.message);
-                        }
-                    });
-            }
-        }
-
-        function clearOOVWords() {
-            if (confirm('Clear OOV (Out of Vocabulary) words only?')) {
-                fetch('/api/clear_tutor_oov', { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            alert('OOV words cleared!');
-                            document.getElementById('tutorStatus').textContent = data.message;
-                            document.getElementById('tutorStatus').style.background = '#e2e3f0';
-                            document.getElementById('tutorStatus').style.color = '#6f42c1';
-                        } else {
-                            alert('Error: ' + data.message);
-                        }
-                    });
-            }
-        }
-
-        function clearAllAndFresh() {
-            if (confirm('COMPLETE FRESH START - This will clear EVERYTHING:\n\n- All transcriptions\n- All validated words\n- All vocabulary bank\n- All tutor data\n- All audio files\n\nYou will start completely fresh. Continue?')) {
-                fetch('/api/clear_all_data', { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            alert('Complete fresh start! All data cleared.');
-                            document.getElementById('tutorStatus').textContent = 'Fresh start complete - all data cleared';
-                            document.getElementById('tutorStatus').style.background = '#d4edda';
-                            document.getElementById('tutorStatus').style.color = '#155724';
-                            loadValidations();
-                            loadNewWords();
-                            document.getElementById('vocabularyBank').innerHTML = '';
-                            document.getElementById('vocabStatus').textContent = '';
-                        } else {
-                            alert('Error: ' + data.message);
-                        }
-                    });
-            }
-        }
-
-        // Auto-refresh every 30 seconds
-        setInterval(() => {
-            loadNewWords();
-            loadValidations();
-        }, 30000);
-    </script>
-</body>
-</html>
+        table.innerHTML = filtered.map(item => `
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem;">${item.timestamp || '-'}</td>
+                <td style="padding: 1rem; font-weight: 600;">${item.word}</td>
+                <td style="padding: 1rem;"><span class="badge badge-primary">${item.language}</span></td>
+                <td style="padding: 1rem;">
+                    ${item.status === 'valid' ? item.meaning : `<span style="color: var(--warning);">${item.meaning || item.status}</span>`}
+                </td>
+            </tr>
+        `).join("");
+    }
+</script>
+{% endblock %}

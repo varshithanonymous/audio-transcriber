@@ -1,275 +1,45 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Realtime Transcription</title>
-    <style>
-        :root {
-            --bg: #0f172a;
-            --panel: rgba(255,255,255,0.05);
-            --border: rgba(255,255,255,0.08);
-            --text: #e2e8f0;
-            --muted: #94a3b8;
-            --accent: #38bdf8;
-            --danger: #f87171;
-        }
-        body { font-family: "Inter","Segoe UI",Arial,sans-serif; background: var(--bg); margin: 0; padding: 28px; color: var(--text); }
-        .wrap { max-width: 1100px; margin: auto; }
-        h1 { margin: 0 0 12px; }
-        .muted { color: var(--muted); }
-        .card { background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.35); margin-bottom: 14px; }
-        .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
-        button, select, a { border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); padding: 8px 12px; cursor: pointer; text-decoration: none; color: var(--text); }
-        button.primary { background: var(--accent); color: #0f172a; border-color: var(--accent); }
-        button.danger { background: var(--danger); color: #0f172a; border-color: var(--danger); }
-        #log { max-height: 480px; overflow-y: auto; }
-        .entry { padding: 10px; border-bottom: 1px solid var(--border); }
-        .timestamp { color: var(--muted); font-size: 13px; }
-        .lang { font-weight: 600; margin-left: 6px; color: var(--accent); }
-        #pagination button { margin-right: 4px; }
-        nav a { margin-right: 12px; color: var(--text); text-decoration: none; }
-    </style>
-</head>
-<body>
-    <div class="wrap">
-        <nav>
-            <a href="/">Home</a>
-            <a href="/dataset">Dataset</a>
-            <a href="/tutor">Tutor</a>
-            <a href="/validation_page">Validation</a>
-            <a href="/language">Language Detection</a>
-        </nav>
-        <h1>Realtime Transcription</h1>
-        <p class="muted">Captures sentences every ~7s. Start/stop recording anytime.</p>
+{% extends "base.html" %}
 
-        <div class="card">
-            <div class="controls">
-                <button class="primary" onclick="startRecording()">Start Recording</button>
-                <button class="danger" onclick="stopRecording()">Stop Recording</button>
-                <a href="/download/txt">Download TXT</a>
-                <a href="/download/csv">Download CSV</a>
-                <label>Filter:
-                    <select id="langFilter" onchange="fetchData(1)">
-                        <option value="all">All</option>
-                        <option value="en">English</option>
-                        <option value="es">Spanish</option>
-                        <option value="hi">Hindi</option>
-                    </select>
-                </label>
-                <span id="status" class="muted">Checking…</span>
+{% block title %}Transcription - LinguaVoice{% endblock %}
+
+{% block content %}
+<div style="text-align: center; max-width: 600px; margin: 2rem auto;">
+    <h1>Real-time Transcription</h1>
+    <p style="color: var(--text-muted); margin-bottom: 2rem;">
+        For interactive learning and tracking, we recommend using the <a href="/tutor" style="color: var(--primary);">AI
+            Tutor</a>.
+    </p>
+
+    <div class="card">
+        <div id="transcript-box" style="min-height: 200px; text-align: left; max-height: 400px; overflow-y: auto;">
+            <div style="color: var(--text-muted); text-align: center; padding-top: 2rem;">
+                Transcripts will appear here...
             </div>
-            <div id="log"></div>
         </div>
     </div>
 
-    <script>
-        let currentPage = 1;
-        const pageSize = 20;
-        const refreshMs = 7000;
-
-        async function fetchData(page) {
-            currentPage = page || currentPage;
-            let lang = document.getElementById("langFilter").value;
-            let res = await fetch(`/data?lang=${lang}&limit=${pageSize}`);
-            let data = await res.json();
-            let log = document.getElementById("log");
-            log.innerHTML = "";
-            data.reverse().forEach(item => {
-                let div = document.createElement("div");
-                div.className = "entry";
-                div.innerHTML = `<div class="timestamp">${item.timestamp} <span class="lang">[${item.language}]</span></div>
-                                 <div>${item.text}</div>
-                                 ${item.audio_file ? `<audio controls src="/audio_clips/${item.audio_file}" style="margin-top:6px; width:260px;"></audio>` : ''}`;
-                log.appendChild(div);
-            });
-            log.scrollTop = log.scrollHeight;
-        }
-
-
-
-        async function startRecording() {
-            await fetch("/record/start", {method: "POST"});
-            updateStatus();
-        }
-
-        async function stopRecording() {
-            await fetch("/record/stop", {method: "POST"});
-            updateStatus();
-        }
-
-        async function updateStatus() {
-            const res = await fetch("/record/status");
-            const data = await res.json();
-            document.getElementById("status").innerText = data.recording ? "Recording" : "Stopped";
-        }
-
-        setInterval(() => {
-            fetchData();
-            updateStatus();
-        }, refreshMs);
-
-        fetchData(1);
-        updateStatus();
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Real-Time Transcription</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; }
-        .header { background: #007BFF; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        .nav { margin-bottom: 20px; }
-        .nav a { background: #6c757d; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin-right: 10px; }
-        .nav a:hover { background: #495057; }
-        .controls { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .status { padding: 15px; border-radius: 8px; margin: 15px 0; font-weight: bold; }
-        .status.active { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .status.inactive { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        button { padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin: 5px; }
-        .start-btn { background: #28a745; color: white; }
-        .start-btn:hover { background: #218838; }
-        .stop-btn { background: #dc3545; color: white; }
-        .stop-btn:hover { background: #c82333; }
-        .start-btn:disabled, .stop-btn:disabled { background: #6c757d; cursor: not-allowed; }
-        .transcripts { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-height: 500px; overflow-y: auto; }
-        .transcript { background: #f8f9fa; padding: 15px; margin: 10px 0; border-left: 4px solid #007BFF; border-radius: 5px; }
-        .lang-tag { background: #007BFF; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-        .timestamp { color: #6c757d; font-size: 14px; margin-bottom: 5px; }
-        .text { font-size: 16px; line-height: 1.5; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🎙️ Real-Time Audio Transcription</h1>
-        <p>Speak into your microphone for automatic transcription in multiple languages</p>
+    <div style="margin-top: 1rem;">
+        <p style="font-size: 0.9rem; color: var(--text-muted);">
+            This is a raw view. Use the AI Tutor for the full experience.
+        </p>
     </div>
-    
-    <div class="nav">
-        <a href="/">🏠 Home</a>
-        <a href="/validation">✅ Word Validation</a>
-        <a href="/language">🌍 Language Detection</a>
-        <a href="/dashboard">📊 Dashboard</a>
-    </div>
-    
-    <div class="controls">
-        <h3>Audio Controls</h3>
-        <button id="startBtn" class="start-btn" onclick="startTranscription()">🎤 Start Listening</button>
-        <button id="stopBtn" class="stop-btn" onclick="stopTranscription()" disabled>⏹️ Stop Listening</button>
-        <div id="status" class="status inactive">Status: Ready to start</div>
-    </div>
-    
-    <div class="transcripts">
-        <h3>Live Transcriptions</h3>
-        <div id="transcriptList">
-            <p style="color: #6c757d; text-align: center;">No transcriptions yet. Click "Start Listening" to begin.</p>
-        </div>
-    </div>
+</div>
+{% endblock %}
 
-    <script>
-        let isListening = false;
-        let pollInterval;
-
-        function startTranscription() {
-            const startBtn = document.getElementById('startBtn');
-            const stopBtn = document.getElementById('stopBtn');
-            const status = document.getElementById('status');
-            
-            startBtn.disabled = true;
-            startBtn.textContent = 'Starting...';
-            
-            fetch('/api/start_transcription')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'started') {
-                        isListening = true;
-                        startBtn.disabled = true;
-                        stopBtn.disabled = false;
-                        startBtn.textContent = '🎤 Listening...';
-                        startBtn.style.background = '#28a745';
-                        
-                        status.className = 'status active';
-                        status.textContent = 'Status: Listening - Speak now! (EN/ES/HI supported)';
-                        
-                        // Start polling for transcripts
-                        pollInterval = setInterval(loadTranscripts, 2000);
-                        loadTranscripts();
-                    } else {
-                        status.className = 'status inactive';
-                        status.textContent = 'Status: Failed to start - Check microphone permissions or models';
-                        startBtn.disabled = false;
-                        startBtn.textContent = '🎤 Start Listening';
-                    }
-                });
+{% block scripts %}
+<script>
+    setInterval(async () => {
+        const res = await fetch('/data?limit=10');
+        const data = await res.json();
+        const box = document.getElementById('transcript-box');
+        if (data.length > 0) {
+            box.innerHTML = data.map(t => `
+                <div style="border-bottom: 1px solid var(--border); padding: 0.5rem 0;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">${t.timestamp} [${t.language}]</div>
+                    <div>${t.text}</div>
+                </div>
+            `).join('');
         }
-
-        function stopTranscription() {
-            const startBtn = document.getElementById('startBtn');
-            const stopBtn = document.getElementById('stopBtn');
-            const status = document.getElementById('status');
-            
-            fetch('/api/stop_transcription')
-                .then(response => response.json())
-                .then(data => {
-                    isListening = false;
-                    startBtn.disabled = false;
-                    stopBtn.disabled = true;
-                    startBtn.textContent = '🎤 Start Listening';
-                    startBtn.style.background = '#28a745';
-                    
-                    status.className = 'status inactive';
-                    status.textContent = 'Status: Stopped';
-                    
-                    if (pollInterval) {
-                        clearInterval(pollInterval);
-                    }
-                });
-        }
-
-        function loadTranscripts() {
-            fetch('/api/get_transcripts')
-                .then(response => response.json())
-                .then(data => {
-                    const container = document.getElementById('transcriptList');
-                    
-                    if (data.length === 0) {
-                        container.innerHTML = '<p style="color: #6c757d; text-align: center;">No transcriptions yet. Start speaking...</p>';
-                        return;
-                    }
-                    
-                    let html = '';
-                    data.forEach(item => {
-                        html += `
-                            <div class="transcript">
-                                <div class="timestamp">
-                                    <span class="lang-tag">${item.language.toUpperCase()}</span>
-                                    ${item.timestamp}
-                                </div>
-                                <div class="text">"${item.text}"</div>
-                            </div>
-                        `;
-                    });
-                    
-                    container.innerHTML = html;
-                });
-        }
-
-        // Check status on page load
-        fetch('/api/transcription_status')
-            .then(response => response.json())
-            .then(data => {
-                if (data.is_running) {
-                    isListening = true;
-                    document.getElementById('startBtn').disabled = true;
-                    document.getElementById('stopBtn').disabled = false;
-                    document.getElementById('startBtn').textContent = '🎤 Listening...';
-                    document.getElementById('status').className = 'status active';
-                    document.getElementById('status').textContent = 'Status: Currently listening...';
-                    
-                    pollInterval = setInterval(loadTranscripts, 2000);
-                }
-                loadTranscripts();
-            });
-    </script>
-</body>
-</html>
+    }, 2000);
+</script>
+{% endblock %}

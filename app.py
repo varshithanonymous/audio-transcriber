@@ -1,10 +1,14 @@
-from flask import Flask, render_template, jsonify, Response, send_from_directory, request
+from flask import Flask, render_template, jsonify, Response, send_from_directory, request, redirect
 import sqlite3
 import csv
 import io
 import os
 import transcriber
 from adaptive_chatbot import AdaptiveChatbot
+import threading
+import time
+import random
+import json
 
 # Enhanced features
 class OfflineLanguageDetector:
@@ -212,7 +216,7 @@ def get_transcripts(limit=None, lang=None):
 
 @app.route("/")
 def index():
-    return render_template("main_menu.html")
+    return redirect("/dashboard")
 
 @app.route("/transcription")
 def transcription_page():
@@ -224,10 +228,6 @@ def tutor_page():
 
 @app.route("/validation_page")
 def validation_page():
-    return render_template("validation.html")
-
-@app.route("/validation")
-def validation_redirect():
     return render_template("validation.html")
 
 @app.route("/language")
@@ -274,39 +274,256 @@ def get_new_words():
     conn.close()
     return jsonify({"words": pending_words})
 
-@app.route("/api/get_all_words")
-def get_all_validated_words():
+@app.route("/api/get_validation_log")
+def get_validation_log():
     conn = sqlite3.connect("word_database.db")
     cursor = conn.cursor()
-    
-    # Check if table exists and get column info
-    cursor.execute("PRAGMA table_info(validated_words)")
-    columns = [col[1] for col in cursor.fetchall()]
-    
-    if 'timestamp' in columns and 'is_valid' in columns:
-        cursor.execute("SELECT word, language, meaning, is_valid, timestamp FROM validated_words ORDER BY timestamp DESC")
+    # Check if table exists
+    try:
+        cursor.execute("SELECT * FROM validation_log ORDER BY id DESC LIMIT 100")
         rows = cursor.fetchall()
-        result = [{"word": r[0], "language": r[1] or "EN", "meaning": r[2], "is_valid": bool(r[3]), "timestamp": r[4]} for r in rows]
-    else:
-        # Fallback for older table structure
-        cursor.execute("SELECT word, language, meaning FROM validated_words ORDER BY rowid DESC")
-        rows = cursor.fetchall()
-        import time
-        current_time = time.strftime("%Y-%m-%d %H:%M:%S")
-        result = [{"word": r[0], "language": r[1] or "EN", "meaning": r[2], "is_valid": True, "timestamp": current_time} for r in rows]
-    
+        result = [
+            {"id": r[0], "user_id": r[1], "word": r[2], "language": r[3], "meaning": r[4], "status": r[5], "timestamp": r[6]} 
+            for r in rows
+        ]
+    except:
+        result = []
     conn.close()
     return jsonify(result)
 
-@app.route("/api/get_pending_words")
-def get_pending_words():
-    """Get words that are pending validation (stored offline, need online validation)"""
+@app.route("/api/auto_generate_vocab")
+def auto_generate_vocab():
+    """Endpoint for context-aware continuous generation"""
+    import random
+    new_words = []
+    
+    # 1. Get the latest valid spoken word by the user to seed context
+    conn_val = sqlite3.connect("word_database.db")
+    seed_word = None
+    seed_lang = 'en'
+    try:
+        cur = conn_val.cursor()
+        cur.execute("SELECT word, language FROM validation_log WHERE status='valid' ORDER BY id DESC LIMIT 1")
+        row = cur.fetchone()
+        if row: 
+            seed_word = row[0].lower()
+            seed_lang = row[1]
+    except: pass
+    conn_val.close()
+    
+    # Context Mapping (Simple localized graph)
+    # If user says X, suggest Y, Z...
+    context_map = {
+        'money': ['bank', 'investment', 'cash', 'salary', 'profit'],
+        'school': ['teacher', 'exam', 'book', 'student', 'class'],
+        'time': ['clock', 'minute', 'hour', 'schedule', 'late'],
+        'business': ['strategy', 'meeting', 'client', 'deal', 'market'],
+        'travel': ['ticket', 'passport', 'airport', 'hotel', 'luggage'],
+        
+        # Spanish seeds
+        'dinero': ['banco', 'inversión', 'efectivo', 'salario', 'ganancia'],
+        
+        # Hindi seeds
+        'पैसा': ['बैंक', 'निवेश', 'नकद', 'वेतन', 'लाभ']
+    }
+    
+    # Determine source based on seed
+    source_pool = []
+    source_context = "General"
+    
+    if seed_word:
+        # Check direct match or partial match
+        for key, val in context_map.items():
+            if key in seed_word or seed_word in key:
+                source_pool = val
+                source_context = f"Because you said '{seed_word}'"
+                break
+    
+    conn = sqlite3.connect("vocabulary_bank.db")
+    
+    # Extensive local dictionary fallback
+    local_vocab = [
+        ("Negotiation", "en", "Discussion aimed at reaching an agreement"),
+        ("Strategy", "en", "A plan of action designed to achieve a long-term or overall aim"),
+        ("Investment", "en", "The action or process of investing money for profit"),
+        ("Innovation", "en", "A new method, idea, product, etc."),
+        ("Deadline", "en", "The latest time or date by which something should be completed"),
+        ("Collaboration", "en", "The action of working with someone to produce something"),
+        ("Revenue", "en", "Income, especially when of a company"),
+        ("Benchmark", "en", "A standard or point of reference against which things may be compared"),
+        ("Synergy", "en", "The interaction of cooperation of two or more organizations"),
+        ("Optimization", "en", "The action of making the best or most effective use of a resource"),
+        ("Itinerary", "en", "A planned route or journey"),
+        ("Accommodation", "en", "A room, group of rooms, or building in which someone may live or stay"),
+        ("Reservation", "en", "The action of reserving something"),
+        ("Backpack", "en", "A bag with shoulder straps that allow it to be carried on one's back"),
+        ("Passport", "en", "An official document certifying the holder's identity and citizenship"),
+        ("Departure", "en", "The action of leaving, especially to start a journey"),
+        ("Luggage", "en", "Suitcases or other bags in which to pack personal belongings for traveling"),
+        ("Souvenir", "en", "A thing that is kept as a reminder of a person, place, or event"),
+        ("Hypothesis", "en", "A supposition or proposed explanation made on the basis of limited evidence"),
+        ("Analysis", "en", "Detailed examination of the elements or structure of something"),
+        ("Methodology", "en", "A system of methods used in a particular area of study or activity"),
+        ("Citation", "en", "A quotation from or reference to a book, paper, or author"),
+        ("Conclusion", "en", "A judgment or decision reached by reasoning"),
+        ("Negociación", "es", "English: Negotiation - Discussion to reach agreement"),
+        ("Estrategia", "es", "English: Strategy - Plan of action"),
+        ("Inversión", "es", "English: Investment"),
+        ("Innovación", "es", "English: Innovation"),
+        ("Fecha límite", "es", "English: Deadline"),
+        ("Itinerario", "es", "English: Itinerary"),
+        ("Alojamiento", "es", "English: Accommodation"),
+        ("Reservación", "es", "English: Reservation"),
+        ("Hipótesis", "es", "English: Hypothesis"),
+        ("Análisis", "es", "English: Analysis"),
+        ("Desarrollo", "es", "English: Development"),
+        ("Mercado", "es", "English: Market"),
+        ("Empresa", "es", "English: Company"),
+        ("Éxito", "es", "English: Success"),
+        ("Viaje", "es", "English: Trip"),
+        ("Universidad", "es", "English: University"),
+        ("Biblioteca", "es", "English: Library"),
+        ("Conocimiento", "es", "English: Knowledge"),
+        ("Futuro", "es", "English: Future"),
+        ("Proyecto", "es", "English: Project"),
+        ("समझौता (Samjhauta)", "hi", "English: Agreement/Compromise"),
+        ("रणनीति (Ran-neeti)", "hi", "English: Strategy"),
+        ("निवेश (Nivesh)", "hi", "English: Investment"),
+        ("नवाचार (Navachar)", "hi", "English: Innovation"),
+        ("समय सीमा (Samay Seema)", "hi", "English: Deadline"),
+        ("यात्रा कार्यक्रम (Yatra Karyakram)", "hi", "English: Itinerary"),
+        ("आवास (Awas)", "hi", "English: Accommodation"),
+        ("आरक्षण (Arakshan)", "hi", "English: Reservation"),
+        ("परिकल्पना (Parikalpana)", "hi", "English: Hypothesis"),
+        ("विश्लेषण (Vishleshan)", "hi", "English: Analysis"),
+        ("विकास (Vikas)", "hi", "English: Development"),
+        ("बाज़ार (Bazaar)", "hi", "English: Market"),
+        ("सफलता (Safalta)", "hi", "English: Success"),
+        ("व्यापार (Vyapar)", "hi", "English: Business"),
+        ("ज्ञान (Gyaan)", "hi", "English: Knowledge"),
+        ("शिक्षा (Shiksha)", "hi", "English: Education"),
+        ("अनुसंधान (Anusandhan)", "hi", "English: Research"),
+        ("प्रौद्योगिकी (Praudyogiki)", "hi", "English: Technology"),
+        ("संचार (Sanchar)", "hi", "English: Communication"),
+        ("नेतृत्व (Netritva)", "hi", "English: Leadership")
+    ]
+    
+    try:
+        conn.execute("CREATE TABLE IF NOT EXISTS vocabulary_bank (id INTEGER PRIMARY KEY AUTOINCREMENT, word TEXT UNIQUE, source_word TEXT, meaning TEXT, generated_date TEXT, is_validated INTEGER DEFAULT 0, language TEXT)")
+        
+        # Generate 5 words
+        for _ in range(5):
+            word, lang, meaning = "", "", ""
+            
+            # Priority: Context aware
+            if source_pool:
+                word_raw = random.choice(source_pool)
+                word = word_raw.title()
+                # Try to find pre-defined meaning in local_vocab if exists
+                match = next((x for x in local_vocab if x[0].lower() == word.lower()), None)
+                if match:
+                    _, lang, meaning = match
+                else:
+                    lang = seed_lang if seed_lang else 'en'
+                    meaning = f"Related to {seed_word}"
+            else:
+                # Random fallback
+                choice = random.choice(local_vocab)
+                word, lang, meaning = choice
+                source_context = "General Bank"
+
+            ts = time.strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Insert into DB
+            try:
+                conn.execute("INSERT INTO vocabulary_bank (word, source_word, meaning, generated_date, language) VALUES (?, ?, ?, ?, ?)", 
+                            (word, source_context, meaning, ts, lang))
+            except:
+                try:
+                    conn.execute("UPDATE vocabulary_bank SET generated_date=?, source_word=? WHERE word=?", (ts, source_context, word))
+                except: pass
+
+            new_words.append({
+                "word": word, 
+                "language": lang, 
+                "source": source_context, 
+                "meaning": meaning, 
+                "date": ts
+            })
+            
+        conn.commit()
+    except Exception as e:
+        print(f"Gen error: {e}")
+    finally:
+        conn.close()
+        
+    return jsonify(new_words)
+
+@app.route("/api/get_vocabulary_bank_full")
+def get_vocab_bank_full():
+    conn = sqlite3.connect("vocabulary_bank.db")
+    cursor = conn.cursor()
+    try:
+        # Order by date so recently updated/generated words appear first
+        cursor.execute("SELECT word, source_word, generated_date, language FROM vocabulary_bank ORDER BY generated_date DESC LIMIT 50")
+        rows = cursor.fetchall()
+        result = [{"word": r[0], "source": r[1], "date": r[2], "language": r[3] if len(r)>3 else 'en'} for r in rows]
+    except:
+        result = []
+    conn.close()
+    return jsonify(result)
+
+@app.route("/api/get_my_spoken_words")
+def get_my_spoken_words():
+    """Get the list of unique valid words spoken by the user"""
     conn = sqlite3.connect("word_database.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT word FROM validated_words WHERE is_valid = -1 ORDER BY timestamp DESC LIMIT 50")
-    rows = cursor.fetchall()
+    try:
+        # Get unique valid words sorted by most recent
+        cursor.execute("SELECT DISTINCT word, language, meaning, MAX(timestamp) as last_spoken FROM validation_log WHERE status='valid' GROUP BY word ORDER BY last_spoken DESC LIMIT 50")
+        rows = cursor.fetchall()
+        result = [{"word": r[0], "language": r[1], "meaning": r[2], "date": r[3]} for r in rows]
+    except:
+        result = []
     conn.close()
-    return jsonify({"words": [r[0] for r in rows]})
+    return jsonify(result)
+
+@app.route("/api/retry_validation")
+def retry_validation():
+    """Retry validation for all pending entries"""
+    conn = sqlite3.connect("word_database.db")
+    cursor = conn.cursor()
+    # Find pending items from the log
+    try:
+        cursor.execute("SELECT id, user_id, word, language FROM validation_log WHERE status='pending'")
+        rows = cursor.fetchall()
+    except:
+        rows = []
+    
+    conn.close()
+    
+    processed = 0
+    # Process in background to avoid blocking
+    def process_retries(items):
+        from transcriber import validate_word_online
+        for row in items:
+            log_id, uid, word, lang = row
+            # We call validate_word_online again. 
+            # Note: The function inserts a NEW log entry usually. 
+            # Ideally we'd modify it to update, but our current implementation creates a new log.
+            # To fix this, we'll just let it create a new one (history) and maybe delete the old pending if we want cleaner logs,
+            # or just mark old as 'retried'.
+            # A simpler way: just run validation. It will create a new entry with potential success.
+            # The UI shows latest first, so the user will see the successful one on top.
+            try:
+                validate_word_online(uid, word, lang)
+            except: pass
+
+    if rows:
+        threading.Thread(target=process_retries, args=(rows,)).start()
+        processed = len(rows)
+        
+    return jsonify({"message": f"Retrying {processed} pending words in background...", "count": processed})
 
 # Initialize vocabulary bank database
 def init_vocab_bank_db():
@@ -710,6 +927,10 @@ def download_validations():
 @app.route("/dashboard")
 def dashboard_page():
     return render_template("dashboard.html")
+
+@app.route("/vocabulary")
+def vocabulary_page():
+    return render_template("vocabulary.html")
 
 @app.route("/dataset")
 def dataset_page():
