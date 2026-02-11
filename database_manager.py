@@ -2,7 +2,7 @@ import sqlite3
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 
-DB_NAME = "linguavoice.db"
+DB_NAME = os.environ.get("DB_NAME", "linguavoice.db")
 
 class DatabaseManager:
     def __init__(self, db_name=DB_NAME):
