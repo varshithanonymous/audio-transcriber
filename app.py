@@ -70,6 +70,22 @@ def logout():
     transcriber.set_active_user(None)
     return redirect("/login")
 
+@app.route("/health")
+def health_check():
+    health = {"status": "ok", "database": "unknown", "db_path": db.db_name}
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = [row[0] for row in cursor.fetchall()]
+        health["database"] = "connected"
+        health["tables"] = tables
+        conn.close()
+    except Exception as e:
+        health["status"] = "error"
+        health["database"] = f"error: {str(e)}"
+    return jsonify(health)
+
 # --- Routes: Main App ---
 @app.route("/")
 def index():
