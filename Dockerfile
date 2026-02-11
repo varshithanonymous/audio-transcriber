@@ -24,5 +24,5 @@ COPY . .
 # Expose port
 EXPOSE 5000
 
-# Start with Gunicorn
-CMD ["gunicorn", "--workers", "2", "--bind", "0.0.0.0:5000", "--timeout", "120", "app:app"]
+# Start with Gunicorn (using dynamic port for Railway/Render)
+CMD gunicorn --workers 1 --bind 0.0.0.0:${PORT:-5000} --timeout 120 app:app
