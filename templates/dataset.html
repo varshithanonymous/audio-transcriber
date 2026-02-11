@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset - LinguaVoice{% endblock %}
+
+{% block content %}
+<div>
+    <h1 style="color: #000;">Dataset</h1>
+    <p style="color: #666; margin-bottom: 2rem;">Full history of your transcriptions and audio clips.</p>
+
+    <div class="card">
+        <div id="dataset-list">
+            Loading data...
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', loadData);
+
+    async function loadData() {
+        const res = await fetch("/data?lang=all&limit=50");
+        const data = await res.json();
+        const box = document.getElementById("dataset-list");
+
+        if (!data || data.length === 0) {
+            box.innerHTML = '<div class="text-center p-4" style="color: #000;">No recordings found.</div>';
+            return;
+        }
+
+        box.innerHTML = data.map(item => `
+            <div style="padding: 1rem 0; border-bottom: 1px solid rgba(74, 144, 226, 0.2); display: flex; gap: 1rem; align-items: start;">
+                 <div style="min-width: 140px; color: #666; font-size: 0.9rem;">
+                    ${item.timestamp}
+                 </div>
+                 <div style="flex: 1;">
+                    <div style="margin-bottom: 0.25rem;">
+                        <span class="badge badge-primary">${item.language}</span>
+                    </div>
+                    <div style="line-height: 1.5; color: #000;">${item.text}</div>
+                    ${item.audio_file ? `<div style="margin-top:0.5rem; font-size:0.8rem; color: #4A90E2;">🎵 Saved as ${item.audio_file.split(/[\\/]/).pop()}</div>` : ''}
+                 </div>
+            </div>
+        `).join("");
+    }
+</script>
+{% endblock %}

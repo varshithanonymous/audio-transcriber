@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multi-Feature Audio Transcription</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { background: white; margin: 20px 0; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .section h2 { color: #333; border-bottom: 2px solid #007BFF; padding-bottom: 10px; }
+        button { background: #007BFF; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        input, textarea { width: 300px; padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .transcript { background: #f8f9fa; padding: 10px; margin: 5px 0; border-left: 4px solid #007BFF; }
+        .lang-tag { background: #28a745; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; }
+        .result { background: #e9ecef; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .status.active { background: #d4edda; color: #155724; }
+        .status.inactive { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Multi-Feature Audio Transcription System</h1>
+        
+        <!-- Section 1: Auto Transcription -->
+        <div class="section">
+            <h2>1. Automatic Audio Transcription</h2>
+            <p>Real-time audio capture and transcription in multiple languages (EN, ES, HI)</p>
+            <button onclick="startTranscription()">🎤 Start Auto Transcription</button>
+            <div id="transcription-status" class="status inactive">Status: Not Started</div>
+            <div id="transcripts"></div>
+        </div>
+
+        <!-- Section 2: Language Detection -->
+        <div class="section">
+            <h2>2. Language Detection</h2>
+            <p>Automatically detect the language of input text</p>
+            <textarea id="textInput" placeholder="Enter text to detect language..."></textarea><br>
+            <button onclick="detectLanguage()">🔍 Detect Language</button>
+            <div id="language-result" class="result"></div>
+        </div>
+
+        <!-- Section 3: Word Validation -->
+        <div class="section">
+            <h2>3. Word Validation & Dictionary</h2>
+            <p>Validate words and get their meanings</p>
+            <input type="text" id="wordInput" placeholder="Enter word to validate">
+            <button onclick="validateWord()">✓ Validate Word</button>
+            <div id="word-result" class="result"></div>
+        </div>
+
+        <!-- Section 4: Live Transcripts Display -->
+        <div class="section">
+            <h2>4. Live Transcription Feed</h2>
+            <p>View all transcriptions in real-time</p>
+            <button onclick="refreshTranscripts()">🔄 Refresh</button>
+            <div id="live-feed"></div>
+        </div>
+    </div>
+
+    <script>
+        let transcriptionActive = false;
+
+        function startTranscription() {
+            fetch('/start_transcription')
+                .then(response => response.json())
+                .then(data => {
+                    transcriptionActive = true;
+                    document.getElementById('transcription-status').className = 'status active';
+                    document.getElementById('transcription-status').textContent = 'Status: Active - Listening for audio...';
+                    
+                    // Start polling for new transcripts
+                    setInterval(refreshTranscripts, 3000);
+                });
+        }
+
+        function refreshTranscripts() {
+            fetch('/get_transcripts')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('transcripts');
+                    const liveContainer = document.getElementById('live-feed');
+                    
+                    let html = '';
+                    data.forEach(item => {
+                        html += `
+                            <div class="transcript">
+                                <span class="lang-tag">${item.language.toUpperCase()}</span>
+                                <strong>${item.timestamp}</strong><br>
+                                ${item.text}
+                                <br><small>Audio: ${item.audio_file}</small>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                    liveContainer.innerHTML = html;
+                });
+        }
+
+        function detectLanguage() {
+            const text = document.getElementById('textInput').value;
+            if (!text) return;
+            
+            fetch(`/detect_language?text=${encodeURIComponent(text)}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('language-result').innerHTML = `
+                        <strong>Detected Language:</strong> ${data.detected_language.toUpperCase()}<br>
+                        <strong>Input Text:</strong> ${data.text}
+                    `;
+                });
+        }
+
+        function validateWord() {
+            const word = document.getElementById('wordInput').value;
+            if (!word) return;
+            
+            fetch(`/validate_word?word=${encodeURIComponent(word)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const status = data.is_valid ? '✅ Valid' : '❌ Invalid';
+                    document.getElementById('word-result').innerHTML = `
+                        <strong>Word:</strong> ${data.word}<br>
+                        <strong>Status:</strong> ${status}<br>
+                        <strong>Meaning:</strong> ${data.meaning || 'Not found'}
+                    `;
+                });
+        }
+
+        // Auto-refresh transcripts every 5 seconds if transcription is active
+        setInterval(() => {
+            if (transcriptionActive) {
+                refreshTranscripts();
+            }
+        }, 5000);
+
+        // Load initial data
+        refreshTranscripts();
+    </script>
+</body>
+</html>

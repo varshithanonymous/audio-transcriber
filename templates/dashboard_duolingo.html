@@ -1,0 +1,103 @@
+{% extends "base_classic.html" %}
+
+{% block title %}Dashboard | LinguaVoice Pro{% endblock %}
+
+{% block content %}
+<div class="container">
+    
+    <!-- Welcome Header -->
+    <div style="padding: 3rem 0 1rem;">
+        <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">
+            Welcome back, {{ user_name.split()[0] }}! 👋
+        </h1>
+        <p style="color: #64748B; font-size: 1.1rem;">Ready to continue your mastery journey?</p>
+    </div>
+
+    <div class="dashboard-layout">
+        
+        <!-- Sidebar Profile -->
+        <aside>
+            <div class="glass-card" style="padding: 2rem; text-align: center; position: sticky; top: 100px;">
+                <!-- Interactive Mascot Container -->
+                <div class="mascot-wrapper" style="margin-bottom: 1.5rem;">
+                    <div class="bubble-modern">"Let's practice!"</div>
+                    <img src="/static/images/serphawk_logo.jpg" class="hawk-mascot-interactive" alt="Serp Hawk">
+                </div>
+                
+                <h3 style="margin-bottom: 0.25rem;">{{ user_name }}</h3>
+                <p style="font-size: 0.9rem; color: #64748B; margin-bottom: 1.5rem;">Pro Member</p>
+                
+                <div style="text-align: left; background: rgba(255,255,255,0.5); padding: 1rem; border-radius: 1rem; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600; color: #475569;">Daily Goal</span>
+                        <span style="color: var(--color-accent); font-weight: 700;">3/5</span>
+                    </div>
+                    <div style="height: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden;">
+                        <div style="height: 100%; width: 60%; background: var(--color-accent); border-radius: 4px;"></div>
+                    </div>
+                </div>
+                
+                <a href="/analytics" class="btn-glow" style="width: 100%; display: block; text-align: center;">View Insights</a>
+            </div>
+        </aside>
+
+        <!-- Main Modules Area -->
+        <div>
+            <!-- Stats Row -->
+            <div class="stats-grid-premium">
+                <div class="glass-card" style="padding: 1.5rem;">
+                    <div style="color: #64748B; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">TOTAL XP</div>
+                    <div class="stat-value-large">1,240</div>
+                </div>
+                <div class="glass-card" style="padding: 1.5rem;">
+                    <div style="color: #64748B; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">STREAK</div>
+                    <div class="stat-value-large" style="background: linear-gradient(135deg, #F59E0B, #D97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">12 🔥</div>
+                </div>
+                <div class="glass-card" style="padding: 1.5rem;">
+                    <div style="color: #64748B; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">VOCABULARY</div>
+                    <div class="stat-value-large">85</div>
+                </div>
+            </div>
+
+            <!-- Learning Modules -->
+            <h3 style="margin-bottom: 1.5rem; color: #334155;">Learning Modules</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                
+                <!-- Tutor Card -->
+                <div class="glass-card" style="padding: 2rem; display: flex; align-items: center; gap: 2rem; cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='/learning'">
+                    <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--color-primary), #334155); border-radius: 1.5rem; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; box-shadow: 0 10px 20px rgba(15,23,42,0.3);">
+                        🤖
+                    </div>
+                    <div>
+                        <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">AI Conversation Tutor</h2>
+                        <p style="color: #64748B; margin-bottom: 1rem;">Engage in real-world dialogue with instant acoustic feedback.</p>
+                        <span style="color: var(--color-accent); font-weight: 700;">Start Session &rarr;</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <!-- Vocabulary -->
+                    <div class="glass-card" style="padding: 1.5rem;" onclick="window.location.href='/vocabulary'">
+                        <div style="width: 50px; height: 50px; background: #E0F2FE; color: #0284C7; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
+                            📚
+                        </div>
+                        <h3>Vocabulary Bank</h3>
+                        <p style="font-size: 0.9rem; color: #64748B; margin-top: 0.5rem;">Review & validate your growing dictionary.</p>
+                    </div>
+
+                    <!-- Free Transcription -->
+                    <div class="glass-card" style="padding: 1.5rem;" onclick="window.location.href='/transcription'">
+                        <div style="width: 50px; height: 50px; background: #FEF3C7; color: #D97706; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
+                            🎙️
+                        </div>
+                        <h3>Free Speech</h3>
+                        <p style="font-size: 0.9rem; color: #64748B; margin-top: 0.5rem;">Unstructured practice with live text.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Working Audio Transcription</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { background: white; margin: 20px 0; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .section h2 { color: #333; border-bottom: 2px solid #007BFF; padding-bottom: 10px; }
+        button { background: #007BFF; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        input, textarea { width: 300px; padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .transcript { background: #f8f9fa; padding: 10px; margin: 5px 0; border-left: 4px solid #007BFF; }
+        .lang-tag { background: #28a745; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; }
+        .result { background: #e9ecef; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .status.active { background: #d4edda; color: #155724; }
+        .status.inactive { background: #f8d7da; color: #721c24; }
+        .word-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+        .word-btn { background: #6c757d; color: white; padding: 5px 10px; border: none; border-radius: 15px; cursor: pointer; font-size: 12px; }
+        .word-btn:hover { background: #495057; }
+        .valid { background: #28a745 !important; }
+        .invalid { background: #dc3545 !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Working Audio Transcription System</h1>
+        
+        <!-- Section 1: Real Audio Transcription -->
+        <div class="section">
+            <h2>1. Real-Time Audio Transcription</h2>
+            <p>Speak into your microphone for automatic transcription</p>
+            <button id="startBtn" onclick="startTranscription()">🎤 Start Listening</button>
+            <div id="transcription-status" class="status inactive">Status: Ready to start</div>
+            <div id="transcripts"></div>
+        </div>
+
+        <!-- Section 2: Word Validation from Speech -->
+        <div class="section">
+            <h2>2. Validate Words from Your Speech</h2>
+            <p>Click on words from your transcribed speech to validate them</p>
+            <button onclick="loadWordsFromSpeech()">📝 Load Words from Recent Speech</button>
+            <div id="speech-words" class="word-list"></div>
+            <div id="word-validation-result" class="result"></div>
+        </div>
+
+        <!-- Section 3: Manual Word Validation -->
+        <div class="section">
+            <h2>3. Manual Word Validation</h2>
+            <p>Type any word to check if it's valid and get its meaning</p>
+            <input type="text" id="wordInput" placeholder="Enter word to validate">
+            <button onclick="validateManualWord()">✓ Validate Word</button>
+            <div id="manual-word-result" class="result"></div>
+        </div>
+
+        <!-- Section 4: Language Detection -->
+        <div class="section">
+            <h2>4. Language Detection</h2>
+            <p>Detect the language of any text</p>
+            <textarea id="textInput" placeholder="Enter text to detect language..."></textarea><br>
+            <button onclick="detectLanguage()">🔍 Detect Language</button>
+            <div id="language-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let transcriptionActive = false;
+
+        function startTranscription() {
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.textContent = 'Starting...';
+            
+            fetch('/start_transcription')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'started') {
+                        transcriptionActive = true;
+                        document.getElementById('transcription-status').className = 'status active';
+                        document.getElementById('transcription-status').textContent = 'Status: Listening - Speak now!';
+                        btn.textContent = '🎤 Listening...';
+                        btn.style.background = '#28a745';
+                        
+                        // Start polling for new transcripts
+                        setInterval(refreshTranscripts, 2000);
+                    } else {
+                        document.getElementById('transcription-status').className = 'status inactive';
+                        document.getElementById('transcription-status').textContent = 'Status: Failed to start - Check microphone permissions';
+                        btn.disabled = false;
+                        btn.textContent = '🎤 Start Listening';
+                    }
+                });
+        }
+
+        function refreshTranscripts() {
+            if (!transcriptionActive) return;
+            
+            fetch('/get_transcripts')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('transcripts');
+                    let html = '';
+                    
+                    data.forEach(item => {
+                        html += `
+                            <div class="transcript">
+                                <span class="lang-tag">${item.language.toUpperCase()}</span>
+                                <strong>${item.timestamp}</strong><br>
+                                "${item.text}"
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                });
+        }
+
+        function loadWordsFromSpeech() {
+            fetch('/get_words_from_transcripts')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('speech-words');
+                    let html = '';
+                    
+                    data.words.forEach(word => {
+                        html += `<button class="word-btn" onclick="validateSpeechWord('${word}')">${word}</button>`;
+                    });
+                    
+                    container.innerHTML = html || '<p>No words found. Start transcription first.</p>';
+                });
+        }
+
+        function validateSpeechWord(word) {
+            fetch(`/validate_word?word=${encodeURIComponent(word)}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update button color
+                    const buttons = document.querySelectorAll('.word-btn');
+                    buttons.forEach(btn => {
+                        if (btn.textContent === word) {
+                            btn.className = data.is_valid ? 'word-btn valid' : 'word-btn invalid';
+                        }
+                    });
+                    
+                    // Show result
+                    const status = data.is_valid ? '✅ Valid Word' : '❌ Invalid Word';
+                    document.getElementById('word-validation-result').innerHTML = `
+                        <strong>Word:</strong> ${data.word}<br>
+                        <strong>Status:</strong> ${status}<br>
+                        <strong>Meaning:</strong> ${data.meaning || 'Not found'}
+                    `;
+                });
+        }
+
+        function validateManualWord() {
+            const word = document.getElementById('wordInput').value;
+            if (!word) return;
+            
+            fetch(`/validate_word?word=${encodeURIComponent(word)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const status = data.is_valid ? '✅ Valid Word' : '❌ Invalid Word';
+                    document.getElementById('manual-word-result').innerHTML = `
+                        <strong>Word:</strong> ${data.word}<br>
+                        <strong>Status:</strong> ${status}<br>
+                        <strong>Meaning:</strong> ${data.meaning || 'Not found'}
+                    `;
+                });
+        }
+
+        function detectLanguage() {
+            const text = document.getElementById('textInput').value;
+            if (!text) return;
+            
+            fetch(`/detect_language?text=${encodeURIComponent(text)}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('language-result').innerHTML = `
+                        <strong>Detected Language:</strong> ${data.detected_language.toUpperCase()}<br>
+                        <strong>Input Text:</strong> "${data.text}"
+                    `;
+                });
+        }
+
+        // Load initial data
+        refreshTranscripts();
+    </script>
+</body>
+</html>

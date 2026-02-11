@@ -1,0 +1,910 @@
+{% extends "base_sidebar.html" if not is_public else "base.html" %}
+
+{% block title %}Skill Arena - LinguaVoice{% endblock %}
+{% block page_title %}{% if is_public %}Try Skill Arena 🏆{% else %}Skill Arena 🏆{% endif %}{% endblock %}
+{% block page_subtitle %}Master your language skills through interactive drills.{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Arena Layout */
+    .arena-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding-bottom: 4rem;
+    }
+
+    /* Game Mode Cards */
+    .mode-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .mode-card {
+        background: white;
+        border-radius: 2rem;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 2px solid transparent;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+
+    .mode-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    .mode-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 6px;
+        background: var(--mode-color, #ccc);
+    }
+
+    .mode-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--mode-bg, #f3f4f6);
+        color: var(--mode-color, #64748b);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        margin-bottom: 1.5rem;
+        transition: transform 0.3s;
+    }
+
+    .mode-card:hover .mode-icon {
+        transform: scale(1.1) rotate(5deg);
+    }
+
+    .mode-title {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--navy-900);
+        margin-bottom: 0.5rem;
+    }
+
+    .mode-desc {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin-bottom: 2rem;
+        line-height: 1.5;
+    }
+
+    .play-btn {
+        margin-top: auto;
+        padding: 0.75rem 2rem;
+        border-radius: 1rem;
+        border: none;
+        background: var(--mode-color);
+        color: white;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.2s;
+        width: 100%;
+    }
+
+    .play-btn:hover {
+        transform: scale(1.02);
+        filter: brightness(1.1);
+    }
+
+    /* Colors for Modes */
+    .mode-speaking {
+        --mode-color: #f59e0b; /* Amber */
+        --mode-bg: #fef3c7;
+    }
+
+    .mode-listening {
+        --mode-color: #3b82f6; /* Blue */
+        --mode-bg: #dbeafe;
+    }
+
+    .mode-speed {
+        --mode-color: #ef4444; /* Red */
+        --mode-bg: #fee2e2;
+    }
+
+    /* Active Game Area Overlay */
+    .game-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.9);
+        backdrop-filter: blur(10px);
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .game-overlay.active {
+        display: flex;
+    }
+
+    .game-container {
+        background: white;
+        width: 90%;
+        max-width: 800px;
+        border-radius: 2rem;
+        padding: 3rem;
+        position: relative;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        animation: slideUp 0.4s ease-out;
+    }
+
+    .close-game {
+        position: fixed;
+        top: 2rem;
+        right: 2rem;
+        background: white;
+        border: none;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        font-size: 2rem;
+        color: var(--navy-900);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10001; /* Above the overlay and everything else */
+        transition: all 0.2s;
+    }
+
+    .close-game:hover {
+        transform: scale(1.1);
+        background: #f1f5f9;
+    }
+
+    /* Game Header */
+    .game-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .game-score-badge {
+        display: inline-block;
+        background: var(--navy-900);
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 2rem;
+        font-weight: 700;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Mascot Integration */
+    .mascot-helper {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 4px solid white;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        margin: 0 auto 1rem;
+        overflow: hidden;
+    }
+    
+    .mascot-helper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Dynamic Content Areas */
+    .game-content {
+        text-align: center;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .big-word {
+        font-size: 3.5rem;
+        font-weight: 800;
+        color: var(--navy-900);
+        margin-bottom: 1rem;
+    }
+
+    .word-meaning {
+        color: var(--text-secondary);
+        font-size: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Interactions */
+    .interaction-area {
+        margin-top: 2rem;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .game-btn {
+        padding: 1rem 2rem;
+        border-radius: 1rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        cursor: pointer;
+        border: none;
+        transition: transform 0.1s;
+    }
+
+    .game-btn:active {
+        transform: scale(0.95);
+    }
+    
+    .btn-mic {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        font-size: 2rem;
+        box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-mic.listening {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        animation: pulse 1s infinite;
+    }
+
+    /* Input Fields */
+    .game-input {
+        font-size: 1.5rem;
+        padding: 1rem;
+        border: 2px solid var(--border-light);
+        border-radius: 1rem;
+        text-align: center;
+        width: 100%;
+        max-width: 400px;
+        margin-bottom: 1rem;
+    }
+
+    .game-input:focus {
+        border-color: var(--mode-color);
+        outline: none;
+    }
+
+    /* Timer */
+    .timer-bar {
+        height: 6px;
+        background: #f1f5f9;
+        border-radius: 3px;
+        margin-top: 2rem;
+        overflow: hidden;
+    }
+
+    .timer-fill {
+        height: 100%;
+        background: var(--mode-color);
+        width: 100%;
+        transition: width 1s linear;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+    .quiz-option {
+        position: relative;
+        padding: 1.25rem 3rem 1.25rem 1.5rem !important;
+        margin-bottom: 0.75rem;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+        text-align: left;
+    }
+
+    .quiz-option:hover:not(.correct):not(.incorrect) {
+        border-color: var(--navy-300);
+        background: #f8fafc;
+    }
+
+    .quiz-option.correct {
+        border-color: #10b981;
+        background: #ecfdf5;
+        color: #065f46;
+    }
+
+    .quiz-option.incorrect {
+        border-color: #ef4444;
+        background: #fef2f2;
+        color: #991b1b;
+    }
+
+    .quiz-option.correct::after {
+        content: '✅';
+        position: absolute;
+        right: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .quiz-option.incorrect::after {
+        content: '❌';
+        position: absolute;
+        right: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="arena-container">
+    
+    <div class="mode-grid">
+        <!-- Mode 1: Speaking Drill -->
+        <div class="mode-card mode-speaking" onclick="launchGame('speaking')">
+            <div class="mode-icon">🎤</div>
+            <h3 class="mode-title">Speaking Drill</h3>
+            <p class="mode-desc">Practice pronunciation with instant AI feedback. Speak clear and confident!</p>
+            <button class="play-btn">Start Drill</button>
+        </div>
+
+        <!-- Mode 2: Listening Master -->
+        <div class="mode-card mode-listening" onclick="launchGame('listening')">
+            <div class="mode-icon">🎧</div>
+            <h3 class="mode-title">Listening Master</h3>
+            <p class="mode-desc">Train your ear. Listen to the AI speak and type exactly what you hear.</p>
+            <button class="play-btn">Start Challenge</button>
+        </div>
+
+        <!-- Mode 3: Speed Blitz -->
+        <div class="mode-card mode-speed" onclick="launchGame('speed')">
+            <div class="mode-icon">⚡</div>
+            <h3 class="mode-title">Speed Blitz</h3>
+            <p class="mode-desc">60 seconds on the clock. How many words can you translate correctly?</p>
+            <button class="play-btn">Start Blitz</button>
+        </div>
+    </div>
+
+</div>
+
+<!-- Universal Game Overlay -->
+<div class="game-overlay" id="game-overlay">
+    <button class="close-game" onclick="closeGame()" title="Close Practice">&times;</button>
+    <div class="game-container">
+        
+        <div class="game-header">
+            <div class="mascot-helper">
+                <img src="{{ url_for('static', filename='images/serphawk_logo.jpg') }}" alt="Serp Hawk">
+            </div>
+            <div class="game-score-badge" id="game-score">Score: 0</div>
+            <h2 id="game-title" style="margin: 0; color: var(--navy-800);">Game Title</h2>
+        </div>
+
+        <!-- Enhanced Guide Phase -->
+        <div id="demo-area" style="display: none; padding: 1rem;">
+            <div class="guide-header" style="text-align: center; margin-bottom: 1.5rem;">
+                <h3 id="coach-title" style="color: var(--navy-800); margin-bottom: 0.5rem;">Coach Serp Hawk</h3>
+                <div class="mascot-bubble" style="background: #f0f9ff; padding: 1rem; border-radius: 1rem; border: 1px solid #bae6fd; position: relative; display: inline-block; max-width: 90%;">
+                    <p id="demo-text" style="color: var(--navy-900); font-weight: 500; margin: 0;"></p>
+                </div>
+            </div>
+
+            <div class="tutorial-steps" style="display: flex; justify-content: space-around; margin-bottom: 2rem; background: #f8fafc; padding: 1rem; border-radius: 1rem;">
+                <div class="step-item" style="text-align: center;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">👁️</div>
+                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">SEE</div>
+                </div>
+                <div style="align-self: center; color: #cbd5e1;">➔</div>
+                <div class="step-item" style="text-align: center;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.25rem;" id="step-action-icon">⌨️</div>
+                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">DO</div>
+                </div>
+                <div style="align-self: center; color: #cbd5e1;">➔</div>
+                <div class="step-item" style="text-align: center;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">🎯</div>
+                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">SCORE</div>
+                </div>
+            </div>
+
+            <div id="practice-area" style="text-align: center; border: 2px dashed #e2e8f0; padding: 2rem; border-radius: 1.5rem; margin-bottom: 2rem;">
+                <p style="text-transform: uppercase; font-size: 0.75rem; font-weight: 800; color: #94a3b8; letter-spacing: 0.1em; margin-bottom: 1rem;">Practice Round (No Score)</p>
+                <div id="practice-content">
+                    <!-- Dynamic Practice Content -->
+                </div>
+            </div>
+            
+            <div style="text-align: center; display: flex; gap: 1rem; justify-content: center; max-width: 500px; margin: 0 auto;">
+                <button class="game-btn" onclick="closeGame()" style="background: #f1f5f9; color: var(--navy-700); flex: 1;">
+                    Exit Challenge
+                </button>
+                <button id="proceed-btn" class="game-btn" onclick="startActualGame()" disabled style="background: var(--navy-800); color: white; flex: 2; opacity: 0.5; cursor: not-allowed; transition: all 0.3s;">
+                    Complete Practice to Proceed
+                </button>
+            </div>
+        </div>
+
+        <!-- Actual Game Phase -->
+        <div class="game-content" id="game-content" style="display: none;">
+            <!-- Dynamic content goes here -->
+        </div>
+
+        <div class="timer-bar" id="timer-bar" style="display: none;">
+            <div class="timer-fill" id="timer-fill"></div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // State
+    let currentGame = null;
+    let score = 0;
+    let timeLeft = 0;
+    let timerInterval = null;
+    let recognition = null;
+    let currentWord = null;
+    let streak = 0;
+    let isPracticeMode = false;
+
+    // Injected from backend
+    const TARGET_LANG = "{{ target_language }}";
+    const CURRENT_LEVEL = {{ current_level or 1 }};
+    const USER_NAME = "{{ user_name }}";
+    const IS_PUBLIC = {{ 'true' if is_public else 'false' }};
+
+    // Config
+    const GAME_CONFIG = {
+        speaking: { 
+            title: "Speaking Drill", 
+            color: "#f59e0b",
+            time: 0, 
+            setup: setupSpeaking 
+        },
+        listening: { 
+            title: "Listening Master", 
+            color: "#3b82f6",
+            time: 0,
+            setup: setupListening 
+        },
+        speed: { 
+            title: "Speed Blitz", 
+            color: "#ef4444",
+            time: 60,
+            setup: setupSpeed 
+        }
+    };
+
+    // --- Core Game Functions ---
+
+    function launchGame(mode) {
+        const config = GAME_CONFIG[mode];
+        if(!config) return;
+
+        currentGame = mode;
+        score = 0;
+        streak = 0;
+        timeLeft = config.time;
+        currentWord = null;
+        isPracticeMode = true;
+
+        // UI Setup
+        document.getElementById('game-overlay').classList.add('active');
+        document.getElementById('game-title').textContent = config.title;
+        document.getElementById('game-score').textContent = `Score: 0`;
+        
+        // Hide game components, reset proceed button
+        document.getElementById('game-content').style.display = 'none';
+        document.getElementById('timer-bar').style.display = 'none';
+        document.getElementById('demo-area').style.display = 'block';
+        
+        const proceedBtn = document.getElementById('proceed-btn');
+        proceedBtn.disabled = true;
+        proceedBtn.style.opacity = '0.5';
+        proceedBtn.style.cursor = 'not-allowed';
+        proceedBtn.textContent = 'Complete Practice to Proceed';
+
+        // Set Coach Content & Tutorial Steps
+        const demoText = document.getElementById('demo-text');
+        const actionIcon = document.getElementById('step-action-icon');
+        
+        if (mode === 'speaking') {
+            demoText.textContent = `I am Coach Serp Hawk. In Speaking Drill, I will show you a word. You must tap the mic and repeat it. Ready to try one?`;
+            actionIcon.textContent = '🎤';
+        } else if (mode === 'listening') {
+            demoText.textContent = `I'll be your Scribe today. Listen carefully to the audio and type exactly what I said. Try this practice word!`;
+            actionIcon.textContent = '🎧';
+        } else if (mode === 'speed') {
+            demoText.textContent = `I'm The Sprinter. Speed is everything here! Type the translation of the meaning as fast as possible. Let's do a warm-up!`;
+            actionIcon.textContent = '⚡';
+        }
+
+        loadPracticeRound();
+    }
+
+    async function loadPracticeRound() {
+        const area = document.getElementById('practice-content');
+        area.innerHTML = '<p>Loading practice word...</p>';
+        
+        const word = await fetchRandomWord();
+        currentWord = word;
+        
+        if (currentGame === 'speaking') {
+            area.innerHTML = `
+                <div class="big-word" style="font-size: 2.5rem;">${word.word}</div>
+                <button class="game-btn btn-mic" id="mic-btn" onclick="toggleMic()" style="width: 60px; height: 60px; font-size: 1.5rem;">🎤</button>
+                <p id="feedback-text" style="font-size: 0.9rem; margin-top: 1rem; color: var(--text-secondary);">Try saying "${word.word}"</p>
+            `;
+            initSpeechRecognition();
+        } else if (currentGame === 'listening') {
+            area.innerHTML = `
+                <button class="game-btn" onclick="playAudio('${word.word}', '${TARGET_LANG}')" style="background: var(--mode-color); color: white; margin-bottom: 1rem;">🔊 Play Sample</button>
+                <input type="text" class="game-input" id="listen-input" placeholder="What did I say?" style="font-size: 1.1rem; padding: 0.5rem;">
+                <div class="quiz-option" onclick="checkListening(this, '${word.word}')" data-correct-word="${word.word}">Check Answer</div>
+                <p id="listen-feedback" style="font-size: 0.9rem; margin-top: 0.5rem;"></p>
+            `;
+            setTimeout(() => playAudio(word.word, TARGET_LANG), 500);
+        } else if (currentGame === 'speed') {
+            area.innerHTML = `
+                <div style="font-size: 1.2rem; margin-bottom: 1rem;">Meanng: <strong>${word.meaning}</strong></div>
+                <input type="text" class="game-input" id="speed-input" placeholder="Type ${word.word}..." style="font-size: 1.1rem; padding: 0.5rem;">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">The translation is "${word.word}"</p>
+            `;
+            const input = document.getElementById('speed-input');
+            input.oninput = (e) => {
+                if(e.target.value.trim().toLowerCase() === currentWord.word.toLowerCase()) {
+                    completePractice();
+                }
+            };
+        }
+    }
+
+    function completePractice() {
+        const proceedBtn = document.getElementById('proceed-btn');
+        proceedBtn.disabled = false;
+        proceedBtn.style.opacity = '1';
+        proceedBtn.style.cursor = 'pointer';
+        proceedBtn.style.background = '#10b981';
+        proceedBtn.textContent = 'Proceed to Test 🚀';
+        
+        if (document.getElementById('feedback-text')) document.getElementById('feedback-text').innerHTML = '<span style="color: green; font-weight: bold;">Practice Complete! Click below.</span>';
+        if (document.getElementById('listen-feedback')) document.getElementById('listen-feedback').innerHTML = '<span style="color: green; font-weight: bold;">Correct! You are ready.</span>';
+        
+        showMascotFeedback("Great job! Now let's do the real thing! 🦅");
+    }
+
+    function startActualGame() {
+        const config = GAME_CONFIG[currentGame];
+        isPracticeMode = false;
+        
+        // Toggle UI
+        document.getElementById('demo-area').style.display = 'none';
+        document.getElementById('game-content').style.display = 'flex';
+        document.getElementById('timer-bar').style.display = 'block';
+
+        // Timer Logic
+        const timerFill = document.getElementById('timer-fill');
+        timerFill.style.backgroundColor = config.color;
+        
+        if (config.time > 0) {
+            timerFill.style.width = '100%';
+            startTimer();
+        } else {
+            timerFill.style.width = '0%';
+        }
+        
+        config.setup();
+    }
+
+    function closeGame() {
+        document.getElementById('game-overlay').classList.remove('active');
+        clearInterval(timerInterval);
+        if(recognition) recognition.stop();
+        window.speechSynthesis.cancel();
+    }
+
+    function startTimer() {
+        const initialTime = timeLeft;
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            const pct = (timeLeft / initialTime) * 100;
+            document.getElementById('timer-fill').style.width = `${pct}%`;
+
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        const mascotMsg = score > 50 ? "Excellent effort! You're a natural! 🦅" : "Good try! Every practice makes you stronger! 💪";
+        
+        document.getElementById('game-content').innerHTML = `
+            <div class="big-word">Session Complete!</div>
+            <div class="word-meaning">Final Score: ${score}</div>
+            <p style="margin-bottom: 2rem; color: var(--text-secondary);">${mascotMsg}</p>
+            <button class="game-btn" onclick="launchGame('${currentGame}')" style="background: var(--navy-800); color: white;">Play Again</button>
+        `;
+    }
+
+    function updateScore(points) {
+        if (isPracticeMode) return;
+        score += points;
+        streak++;
+        document.getElementById('game-score').textContent = `Score: ${score}`;
+        
+        // Animation
+        const badge = document.getElementById('game-score');
+        badge.style.transform = 'scale(1.2)';
+        setTimeout(() => badge.style.transform = 'scale(1)', 200);
+        
+        // Streak feedback
+        if (streak % 5 === 0) {
+            showMascotFeedback(`Streak: ${streak}! You're on fire! 🔥`);
+        }
+    }
+
+    function showMascotFeedback(msg) {
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position: absolute; top: 1rem; right: 1rem; background: var(--navy-800); color: white; padding: 0.5rem 1rem; border-radius: 2rem; font-weight: bold; animation: slideUp 0.3s; z-index: 9999;';
+        toast.textContent = msg;
+        document.querySelector('.game-container').appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+    }
+
+    // --- Speaking Drill ---
+
+    async function setupSpeaking() {
+        initSpeechRecognition();
+        loadNextSpeakingWord();
+    }
+
+    async function loadNextSpeakingWord() {
+        const content = document.getElementById('game-content');
+        content.innerHTML = '<p>Preparing next word...</p>';
+
+        const word = await fetchRandomWord();
+        currentWord = word;
+
+        content.innerHTML = `
+            <div class="big-word">${word.word}</div>
+            <div class="word-meaning">Say this in ${getTargetLangName()}</div>
+            <div class="interaction-area">
+                <button class="game-btn btn-mic" id="mic-btn" onclick="toggleMic()">🎤</button>
+            </div>
+            <div id="feedback-area" style="margin-top: 1.5rem; min-height: 2rem;">
+                <p id="feedback-text" style="color: var(--text-secondary);">Tap mic and speak clearly</p>
+            </div>
+        `;
+    }
+
+    function toggleMic() {
+        if(!recognition) { alert('Speech Recognition not supported in this browser.'); return; }
+        const btn = document.getElementById('mic-btn');
+        if(btn.classList.contains('listening')) {
+            recognition.stop();
+        } else {
+            recognition.lang = getLangCode(TARGET_LANG);
+            recognition.start();
+            btn.classList.add('listening');
+            document.getElementById('feedback-text').textContent = "Listening...";
+        }
+    }
+
+    function selectTestAnswer(element, isCorrect) {
+        const options = document.querySelectorAll('#test-options .quiz-option');
+        options.forEach(opt => opt.style.pointerEvents = 'none');
+        
+        if (isCorrect) {
+            element.classList.add('correct');
+            element.innerHTML += ' <span class="icon-mark">✓</span>'; // Add checkmark icon
+            updateScore(15);
+        } else {
+            element.classList.add('incorrect');
+            element.innerHTML += ' <span class="icon-mark">✗</span>'; // Add cross icon
+            // Show the correct answer too
+            options.forEach(opt => {
+                // This is a bit tricky, might need to store the correct meaning
+                // For now, let's just mark the wrong one clearly.
+                // If opt.dataset.isCorrect is true, add correct mark
+                if (opt.dataset.isCorrect === 'true') {
+                    opt.classList.add('correct');
+                    opt.innerHTML += ' <span class="icon-mark">✓</span>';
+                }
+            });
+            streak = 0;
+        }
+    }
+
+    // --- Listening Master ---
+
+    async function setupListening() {
+        loadNextListeningWord();
+    }
+
+    async function loadNextListeningWord() {
+        const content = document.getElementById('game-content');
+        content.innerHTML = '<p>Tuning the audio...</p>';
+
+        const word = await fetchRandomWord();
+        currentWord = word;
+
+        content.innerHTML = `
+            <div style="font-size: 5rem; margin-bottom: 2rem;">🎧</div>
+            <div class="word-meaning">What word do you hear?</div>
+            <div class="interaction-area" style="flex-direction: column; align-items: center;">
+                <button class="game-btn" onclick="playAudio('${word.word}', '${TARGET_LANG}')" style="background: var(--mode-color); color: white; margin-bottom: 1.5rem;">
+                    🔊 Replay Audio
+                </button>
+                <input type="text" class="game-input" id="listen-input" placeholder="Type word here..." autocomplete="off">
+                <div class="quiz-option" onclick="checkListening(this, '${word.word}')" data-correct-word="${word.word}" style="text-align: center; background: var(--navy-800); color: white;">Submit</div>
+            </div>
+            <p id="listen-feedback" style="margin-top: 1rem;"></p>
+        `;
+        
+        document.getElementById('listen-input').focus();
+        document.getElementById('listen-input').onkeyup = (e) => { if(e.key === 'Enter') checkListening(); };
+
+        // Auto play
+        setTimeout(() => playAudio(word.word, TARGET_LANG), 600);
+    }
+
+    function checkListening(element, correctWord) {
+        const input = document.getElementById('listen-input');
+        const val = input.value.trim().toLowerCase();
+        const isCorrect = val === correctWord.toLowerCase();
+        
+        if (isCorrect) {
+            if (isPracticeMode) {
+                completePractice();
+            } else {
+                updateScore(15);
+                document.getElementById('listen-feedback').innerHTML = '<span style="color: #10b981; font-weight: bold;">✓ Correct!</span>';
+                streak++;
+                setTimeout(loadNextListeningWord, 1000);
+            }
+            if (element) element.classList.add('correct');
+        } else {
+            streak = 0;
+            if (document.getElementById('listen-feedback')) {
+                document.getElementById('listen-feedback').innerHTML = '<span style="color: #ef4444;">Not quite. Listen again!</span>';
+            }
+            input.classList.add('shake');
+            setTimeout(() => input.classList.remove('shake'), 500);
+            if (element) element.classList.add('incorrect');
+        }
+    }
+
+    // --- Speed Blitz ---
+
+    async function setupSpeed() {
+        loadNextSpeedQuestion();
+    }
+
+    async function loadNextSpeedQuestion() {
+        const content = document.getElementById('game-content');
+        content.innerHTML = '<p>Generating challenge...</p>';
+        
+        const word = await fetchRandomWord();
+        currentWord = word;
+        
+        content.innerHTML = `
+            <div class="word-meaning">Translate to ${getTargetLangName()}:</div>
+            <div class="big-word" style="font-size: 2.5rem; color: var(--navy-800); background: #f8fafc; padding: 1rem 2rem; border-radius: 1rem; margin-bottom: 2rem;">
+                ${word.meaning}
+            </div>
+            <div class="interaction-area" style="flex-direction: column; align-items: center; width: 100%;">
+                <input type="text" class="game-input" id="speed-input" placeholder="Type the translation..." autocomplete="off">
+            </div>
+        `;
+        
+        const input = document.getElementById('speed-input');
+        input.focus();
+        input.oninput = (e) => {
+            if (e.target.value.trim().toLowerCase() === currentWord.word.toLowerCase()) {
+                updateScore(10);
+                loadNextSpeedQuestion();
+            }
+        };
+    }
+
+    // --- Helpers ---
+
+    async function fetchRandomWord() {
+        const endpoint = IS_PUBLIC ? '/api/public/tutor/get_content' : '/api/tutor/get_content';
+        try {
+            const res = await fetch(`${endpoint}?level=${CURRENT_LEVEL}`);
+            const data = await res.json();
+            if (data.words && data.words.length > 0) {
+                return data.words[Math.floor(Math.random() * data.words.length)];
+            }
+        } catch (e) {
+            console.error("API Error:", e);
+        }
+        return { word: 'Hola', meaning: 'Hello', language: 'es' }; // Fallback
+    }
+
+    function getLangCode(lang) {
+        const codes = { 'en': 'en-US', 'es': 'es-ES', 'hi': 'hi-IN', 'fr': 'fr-FR', 'de': 'de-DE' };
+        return codes[lang] || 'en-US';
+    }
+
+    function getTargetLangName() {
+        const names = { 'en': 'English', 'es': 'Spanish', 'hi': 'Hindi', 'fr': 'French', 'de': 'German' };
+        return names[TARGET_LANG] || 'the target language';
+    }
+
+    function playAudio(text, lang) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = getLangCode(lang);
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+    }
+
+    function initSpeechRecognition() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SR();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            
+            recognition.onresult = (e) => {
+                const transcript = e.results[0][0].transcript;
+                const btn = document.getElementById('mic-btn');
+                if(btn) btn.classList.remove('listening');
+                
+                if (transcript.toLowerCase().includes(currentWord.word.toLowerCase())) {
+                    if (isPracticeMode) {
+                        completePractice();
+                    } else {
+                        document.getElementById('feedback-text').innerHTML = '<span style="color: #10b981; font-weight: bold;">Perfect pronunciation!</span>';
+                        updateScore(25);
+                        setTimeout(loadNextSpeakingWord, 1500);
+                    }
+                } else {
+                    streak = 0;
+                    if (document.getElementById('feedback-text')) {
+                        document.getElementById('feedback-text').innerHTML = `<span style="color: #6b7280;">Heard: "${transcript}"</span><br><span style="color: #ef4444;">Try again!</span>`;
+                    }
+                }
+            };
+            
+            recognition.onerror = (e) => {
+                const btn = document.getElementById('mic-btn');
+                if(btn) btn.classList.remove('listening');
+                console.error("Speech Error:", e.error);
+            };
+            
+            recognition.onend = () => {
+                const btn = document.getElementById('mic-btn');
+                if(btn) btn.classList.remove('listening');
+            };
+        }
+    }
+
+</script>
+
+{% endblock %}
+
+

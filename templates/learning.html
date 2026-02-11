@@ -1,0 +1,470 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}My Journey - LinguaVoice{% endblock %}
+{% block page_title %}Learning Journey 🗺️{% endblock %}
+{% block page_subtitle %}Your personalized path to fluency{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero Stats Section */
+    .journey-hero {
+        background: radial-gradient(circle at top right, rgba(147, 51, 234, 0.1), transparent),
+                    linear-gradient(135deg, white 0%, #f8fafc 100%);
+        border-radius: 2rem;
+        padding: 2.5rem;
+        margin-bottom: 3rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-content h2 {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--navy-900);
+        margin-bottom: 0.5rem;
+    }
+
+    .hero-content p {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+    .stats-row {
+        display: flex;
+        gap: 3rem;
+        margin-top: 2rem;
+    }
+
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-val {
+        font-size: 2.5rem;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-val.xp { color: #f59e0b; }
+    .stat-val.streak { color: #ef4444; }
+    .stat-val.rank { color: #8b5cf6; }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Main Grid Layout */
+    .journey-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr; /* Map takes 2/3, Stats 1/3 */
+        gap: 3rem;
+    }
+
+    /* Timeline Map */
+    .path-container {
+        position: relative;
+        padding: 2rem 0;
+    }
+
+    /* The vertical line */
+    .path-line {
+        position: absolute;
+        left: 40px;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: #e2e8f0;
+        z-index: 0;
+        border-radius: 2px;
+    }
+    
+    .path-line-progress {
+        position: absolute;
+        left: 40px;
+        top: 0;
+        width: 4px;
+        background: linear-gradient(to bottom, #10b981, #3b82f6);
+        z-index: 1;
+        border-radius: 2px;
+        height: 0%; /* Dynamic */
+        transition: height 1s ease-out;
+    }
+
+    .level-node {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 4rem;
+        position: relative;
+        z-index: 2;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: slideIn 0.5s ease-out forwards;
+    }
+
+    /* Node Status Styles */
+    .node-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: white;
+        border: 4px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin-right: 2rem;
+        flex-shrink: 0;
+        position: relative;
+        transition: all 0.3s;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Completed Level */
+    .level-node.completed .node-icon {
+        background: #10b981;
+        border-color: #10b981;
+        color: white;
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Current Limit Level */
+    .level-node.current .node-icon {
+        background: white;
+        border-color: #3b82f6;
+        color: #3b82f6;
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
+        animation: pulse-ring 2s infinite;
+    }
+    
+    /* Locked Level */
+    .level-node.locked {
+        /* opacity: 0.7; */
+    }
+    
+    .level-node.locked .node-icon {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        color: #94a3b8;
+    }
+
+    .node-content {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 1.5rem;
+        border: 1px solid var(--border-light);
+        flex: 1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s;
+    }
+
+    .level-node.current .node-content {
+        border-color: #3b82f6;
+        transform: scale(1.02);
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.1);
+    }
+
+    .level-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .level-title {
+        font-weight: 800;
+        font-size: 1.25rem;
+        color: var(--navy-900);
+    }
+
+    .level-desc {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+    }
+    
+    .level-btn {
+        display: inline-block;
+        padding: 0.5rem 1.5rem;
+        background: #3b82f6;
+        color: white;
+        border-radius: 2rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .level-btn:hover {
+        background: #2563eb;
+        transform: translateY(-2px);
+    }
+
+    .level-btn.locked-btn {
+        background: #e2e8f0;
+        color: #94a3b8;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    /* Side Panel */
+    .side-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .side-card {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        border: 1px solid var(--border-light);
+    }
+    
+    .side-card h3 {
+        font-size: 1.1rem;
+        color: var(--navy-800);
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+
+    /* Mastery Pyramid */
+    .pyramid-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .pyramid-level {
+        width: 100%;
+        text-align: center;
+        padding: 0.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 700;
+        position: relative;
+    }
+    
+    .p-expert { width: 40%; background: #10b981; }
+    .p-intermediate { width: 70%; background: #f59e0b; }
+    .p-novice { width: 100%; background: #ef4444; }
+
+    @keyframes slideIn { to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
+    
+    @media (max-width: 900px) {
+        .journey-grid { grid-template-columns: 1fr; }
+        .path-line, .path-line-progress { left: 20px; }
+        .node-icon { width: 40px; height: 40px; font-size: 1.2rem; margin-right: 1rem; border-width: 3px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="journey-hero">
+    <div class="hero-content">
+        <h2>Welcome back, Candidate!</h2>
+        <p>Your journey to linguistic mastery continues.</p>
+        
+        <div class="stats-row">
+            <div class="stat-item">
+                <span class="stat-val streak">3</span>
+                <span class="stat-label">🔥 Day Streak</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-val xp" id="total-xp">0</span>
+                <span class="stat-label">⚡ Total XP</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-val rank">Gold</span>
+                <span class="stat-label">🏆 Current Rank</span>
+            </div>
+        </div>
+    </div>
+    <div class="hero-mascot" style="position: absolute; right: -20px; bottom: -40px; opacity: 0.8;">
+        <img src="{{ url_for('static', filename='images/serphawk_logo.jpg') }}" style="width: 250px; height: 250px; border-radius: 50%; opacity: 0.15;" alt="Mascot">
+    </div>
+</div>
+
+<div class="journey-grid">
+    <!-- Map Column -->
+    <div class="path-section">
+        <h3 style="margin-bottom: 2rem; color: var(--navy-800);">Your Path</h3>
+        
+        <div class="path-container" id="timeline-container">
+            <div class="path-line"></div>
+            <div class="path-line-progress" id="path-progress"></div>
+            
+            <!-- Nodes will be injected here via JS -->
+            <!-- Mock for first render -->
+            <div class="level-node completed" style="animation-delay: 0.1s;">
+                <div class="node-icon">✓</div>
+                <div class="node-content">
+                    <div class="level-header">
+                        <span class="level-title">Level 1: Basics</span>
+                        <span style="color: #10b981; font-weight: 600;">Completed</span>
+                    </div>
+                    <p class="level-desc">Fundamental greetings and introductions.</p>
+                    <a href="/test" class="level-btn">Practice Again</a>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Stats Column -->
+    <div class="side-panel">
+        <!-- Mastery Pyramid -->
+        <div class="side-card">
+            <h3>Vocabulary Mastery</h3>
+            <div class="pyramid-container">
+                <div class="pyramid-level p-expert"><span id="count-expert">0</span> Expert</div>
+                <div class="pyramid-level p-intermediate"><span id="count-med">0</span> Intermediate</div>
+                <div class="pyramid-level p-novice"><span id="count-novice">0</span> Novice</div>
+            </div>
+            <p style="text-align: center; margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">Keep practicing to move words up!</p>
+        </div>
+
+        <!-- Language Split -->
+        <div class="side-card">
+            <h3>Languages</h3>
+            <div id="lang-stat-list" style="display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Filled via JS -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const LEVELS = [
+        { id: 1, title: "Basics", desc: "Greetings & Intros", xpReq: 0 },
+        { id: 2, title: "Travel", desc: "Directions & Transport", xpReq: 100 },
+        { id: 3, title: "Dining", desc: "Food & Ordering", xpReq: 300 },
+        { id: 4, title: "Business", desc: "Work & Professional", xpReq: 600 },
+        { id: 5, title: "Fluency", desc: "Complex Topics", xpReq: 1000 }
+    ];
+
+    async function loadJourney() {
+        try {
+            const res = await fetch('/api/get_my_spoken_words');
+            const data = await res.json();
+            
+            // Calc stats
+            let totalXP = 0;
+            let mastery = { high: 0, med: 0, low: 0 };
+            let langs = {};
+
+            data.forEach(w => {
+                // XP formula: 10 pts per word + bonus for mastery
+                let wordXP = 10;
+                if(w.mastery_level >= 2) wordXP += 20;
+                if(w.mastery_level >= 4) wordXP += 50;
+                totalXP += wordXP;
+
+                // Mastery counts
+                if(w.mastery_level >= 4) mastery.high++;
+                else if(w.mastery_level >= 2) mastery.med++;
+                else mastery.low++;
+
+                // Langs
+                langs[w.language] = (langs[w.language] || 0) + 1;
+            });
+
+            // Update UI Stats
+            document.getElementById('total-xp').textContent = totalXP;
+            document.getElementById('count-expert').textContent = mastery.high;
+            document.getElementById('count-med').textContent = mastery.med;
+            document.getElementById('count-novice').textContent = mastery.low;
+
+            // Render Timeline
+            renderTimeline(totalXP);
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderTimeline(currentXP) {
+        const container = document.getElementById('timeline-container');
+        // Keep the lines
+        const line = container.querySelector('.path-line');
+        const prog = container.querySelector('.path-line-progress');
+        
+        // Remove old nodes (keep lines)
+        Array.from(container.querySelectorAll('.level-node')).forEach(n => n.remove());
+
+        let activeFound = false;
+        let progressHeight = 0;
+
+        LEVELS.forEach((lvl, idx) => {
+            let status = 'locked';
+            let icon = '🔒';
+            let btnText = 'Locked';
+            let btnClass = 'locked-btn';
+            
+            if (currentXP >= lvl.xpReq) {
+                // Check if next level is also unlocked, if so this is completed
+                const next = LEVELS[idx+1];
+                if (!next || currentXP >= next.xpReq) {
+                    status = 'completed';
+                    icon = '✓';
+                    btnText = 'Review';
+                    btnClass = '';
+                } else {
+                    status = 'current';
+                    icon = '📍';
+                    btnText = 'Continue';
+                    btnClass = '';
+                    activeFound = true;
+                }
+            } else {
+                // If it's the first one and we have 0 XP, it's current
+                if (idx === 0 && currentXP === 0) {
+                     status = 'current';
+                     icon = '📍';
+                     btnText = 'Start';
+                     btnClass = '';
+                }
+            }
+
+            const node = document.createElement('div');
+            node.className = `level-node ${status}`;
+            node.style.animationDelay = `${idx * 0.15}s`;
+            
+            node.innerHTML = `
+                <div class="node-icon">${icon}</div>
+                <div class="node-content">
+                    <div class="level-header">
+                        <span class="level-title">Level ${lvl.id}: ${lvl.title}</span>
+                        <span style="font-size: 0.9rem; color: ${status === 'completed' ? '#10b981' : (status === 'current' ? '#3b82f6' : '#94a3b8')}">
+                            ${status.toUpperCase()}
+                        </span>
+                    </div>
+                    <p class="level-desc">${lvl.desc}</p>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">Requires ${lvl.xpReq} XP</div>
+                    <a href="/test" class="level-btn ${btnClass}">${btnText}</a>
+                </div>
+            `;
+            
+            container.appendChild(node);
+        });
+        
+        // Calculate progress bar height roughly based on completed levels
+        // Simple logic: 20% per level
+        // Ideally we'd calculate pixels but % is fine for scroll
+    }
+
+    loadJourney();
+</script>
+{% endblock %}
+
+

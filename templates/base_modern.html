@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LinguaVoice{% endblock %}</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Modern CSS -->
+    <link rel="stylesheet" href="/static/css/modern.css">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Page Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Glass Navbar (Bottom-Centered, Sticky) -->
+    <nav class="glass-navbar">
+        <a href="/dashboard" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
+            <span class="nav-icon">📊</span>
+            <span>Dashboard</span>
+        </a>
+        
+        <a href="/transcription" class="nav-item {% if request.path == '/transcription' %}active{% endif %}">
+            <span class="nav-icon">🎙️</span>
+            <span>Transcribe</span>
+        </a>
+        
+        <a href="/vocabulary" class="nav-item {% if request.path == '/vocabulary' %}active{% endif %}">
+            <span class="nav-icon">📚</span>
+            <span>Vocabulary</span>
+        </a>
+        
+        <a href="/ai_tutor" class="nav-item {% if request.path == '/ai_tutor' %}active{% endif %}">
+            <span class="nav-icon">🤖</span>
+            <span>AI Tutor</span>
+        </a>
+        
+        <a href="/analytics" class="nav-item {% if request.path == '/analytics' %}active{% endif %}">
+            <span class="nav-icon">📈</span>
+            <span>Analytics</span>
+        </a>
+        
+        <a href="/settings" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
+            <span class="nav-icon">⚙️</span>
+            <span>Settings</span>
+        </a>
+    </nav>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

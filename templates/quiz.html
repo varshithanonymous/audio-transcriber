@@ -1,0 +1,633 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Quiz - LinguaVoice{% endblock %}
+{% block page_title %} {% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Full Page Game Mode Override from Learning Path */
+    .main-content {
+        background: #80c056 !important;
+        padding: 0 !important;
+        overflow-x: hidden;
+        position: relative;
+    }
+    
+    .game-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #92d050;
+        background-image: 
+            radial-gradient(#a3da61 15%, transparent 16%),
+            radial-gradient(#80c056 15%, transparent 16%);
+        background-size: 60px 60px;
+        background-position: 0 0, 30px 30px;
+        z-index: 0;
+        pointer-events: none;
+    }
+    
+    /* Animated Floating Clouds/Particles */
+    .bg-shape {
+        position: absolute;
+        opacity: 0.1;
+        border-radius: 50%;
+        background: white;
+        animation: float-up 20s infinite linear;
+    }
+    
+    @keyframes float-up {
+        0% { transform: translateY(100vh) scale(0.8); opacity: 0; }
+        100% { transform: translateY(-20vh) scale(1.2); opacity: 0; }
+    }
+
+    .quiz-container {
+        position: relative;
+        max-width: 650px;
+        margin: 0 auto;
+        padding-top: 100px;
+        min-height: 100vh;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* Top HUD */
+    .game-hud {
+        width: 90%;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+    }
+    .hud-pill {
+        background: white;
+        padding: 8px 20px;
+        border-radius: 30px;
+        font-weight: 800;
+        color: #555;
+        box-shadow: 0 4px 0 #ccc;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .progress-track {
+        flex: 1;
+        height: 12px;
+        background: rgba(0,0,0,0.1);
+        border-radius: 10px;
+        margin: 0 20px;
+        align-self: center;
+        overflow: hidden;
+        border: 2px solid rgba(255,255,255,0.5);
+    }
+    .progress-fill {
+        height: 100%;
+        background: #f59e0b; /* Orange for Quiz */
+        width: 0%;
+        transition: width 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        box-shadow: inset 0 2px 0 rgba(255,255,255,0.3);
+    }
+
+    /* 3D Question Card */
+    .question-card {
+        background: white;
+        width: 100%;
+        border-radius: 30px;
+        padding: 30px;
+        border: 5px solid white;
+        box-shadow: 
+            0 15px 35px rgba(0,0,0,0.2), 
+            0 5px 0 #e2e8f0;
+        text-align: center;
+        position: relative;
+        animation: cardEnter 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    @keyframes cardEnter {
+        from { transform: scale(0.8) translateY(50px); opacity: 0; }
+        to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    
+    /* Shake Animation for Wrong Answer */
+    .question-card.shake {
+        animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    
+    @keyframes shake {
+        10%, 90% { transform: translate3d(-2px, 0, 0); }
+        20%, 80% { transform: translate3d(4px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+        40%, 60% { transform: translate3d(8px, 0, 0); }
+    }
+
+    .question-type {
+        background: #e0f2fe;
+        color: #0284c7;
+        padding: 5px 15px;
+        border-radius: 20px;
+        display: inline-block;
+        font-weight: 800;
+        font-size: 0.8rem;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+    }
+
+    .question-text {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: #1e293b;
+        margin-bottom: 30px;
+        line-height: 1.3;
+    }
+
+    .btn-audio {
+        background: #f59e0b;
+        color: white;
+        border: none;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 0 #d97706;
+        cursor: pointer;
+        margin-bottom: 20px;
+        transition: transform 0.1s;
+    }
+    .btn-audio:active { transform: translateY(3px); box-shadow: 0 1px 0 #d97706; }
+
+    /* Answer Grid */
+    .answer-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-top: 20px;
+    }
+    
+    .answer-btn {
+        background: #f1f5f9;
+        border: 2px solid white; /* Inner border simulation */
+        border-radius: 20px;
+        padding: 20px 10px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.1s;
+        box-shadow: 0 6px 0 #cbd5e1;
+        position: relative;
+        top: 0;
+    }
+    
+    .answer-btn:active {
+        top: 6px;
+        box-shadow: 0 0 0 #cbd5e1;
+    }
+    
+    .answer-btn:hover {
+        background: #e2e8f0;
+        transform: translateY(-2px);
+    }
+    
+    /* Answer States */
+    .answer-btn.correct {
+        background: #dcfce7 !important;
+        color: #166534 !important;
+        box-shadow: 0 6px 0 #15803d !important;
+        border-color: #86efac;
+    }
+    
+    .answer-btn.incorrect {
+        background: #fee2e2 !important;
+        color: #991b1b !important;
+        box-shadow: 0 6px 0 #b91c1c !important;
+        border-color: #fca5a5;
+    }
+
+    /* Mascot */
+    .mascot-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+    }
+
+    .mascot-image {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 4px solid white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        background: white;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .mascot-image img { width: 100%; height: 100%; object-fit: cover; }
+
+    .speech-bubble {
+        background: white;
+        padding: 10px 15px;
+        border-radius: 15px;
+        border-bottom-right-radius: 2px;
+        margin-bottom: 5px;
+        margin-right: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        font-family: 'Comic Sans MS', cursive, sans-serif;
+        color: #333;
+        font-size: 0.9rem;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.3s, transform 0.3s;
+    }
+
+    /* Confetti (Simple CSS Particles) */
+    .confetti {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background-color: #f2d74e;
+        position: fixed;
+        top: -10px;
+        z-index: 999;
+        animation: confetti-fall 3s linear forwards;
+    }
+    @keyframes confetti-fall {
+        to { transform: translateY(100vh) rotate(720deg); }
+    }
+
+    /* Modal */
+    #complete-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 999;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        backdrop-filter: blur(5px);
+    }
+    .modal-box {
+        background: white;
+        padding: 40px;
+        border-radius: 30px;
+        text-align: center;
+        animation: pop-in 0.5s;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+    
+    .next-btn {
+        background: #22c55e;
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        border-radius: 15px;
+        margin-top: 20px;
+        cursor: pointer;
+        box-shadow: 0 6px 0 #15803d;
+        width: 100%;
+        transition: transform 0.1s;
+    }
+    .next-btn:active {
+        transform: translateY(4px);
+        box-shadow: 0 2px 0 #15803d;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="game-background" id="bg-anim"></div>
+
+<div class="quiz-container">
+    <!-- HUD -->
+    <div class="game-hud">
+        <div class="hud-pill">
+            <span>❓</span> <span id="q-counter">1/5</span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-bar"></div>
+        </div>
+        <div class="hud-pill">
+            <span>🏆</span> <span id="score-display">0</span>
+        </div>
+    </div>
+    
+    <!-- Question Card -->
+    <div class="question-card" id="quiz-card">
+        <div class="question-type" id="q-type">Multiple Choice</div>
+        
+        <div class="question-audio" id="q-audio-container" style="display:none;">
+            <button class="btn-audio" onclick="playAudio()">🔊</button>
+        </div>
+        
+        <div class="question-text" id="q-text">Loading...</div>
+        
+        <div class="answer-grid" id="options-container">
+            <!-- Options injected here -->
+        </div>
+    </div>
+</div>
+
+<!-- Mascot -->
+<div class="mascot-container">
+    <div class="speech-bubble" id="mascot-speech">
+        Good luck! Choose carefully. 🦅
+    </div>
+    <div class="mascot-image" onclick="speakMascot('You can do it!')">
+        <img src="{{ url_for('static', filename='images/serphawk_logo.jpg') }}" alt="Serp Hawk">
+    </div>
+</div>
+
+<!-- Complete Overlay -->
+<div id="complete-overlay">
+    <div class="modal-box">
+        <div style="font-size:5rem;">🎓</div>
+        <h2 style="color:#1e293b; margin:10px 0;">Quiz Complete!</h2>
+        <div style="font-size:1.5rem; color:#f59e0b; font-weight:800; margin-bottom:10px;" id="final-score">Score: 100%</div>
+        <p style="color:#64748b; margin-bottom:20px;">You've mastered this level!</p>
+        
+        <button class="next-btn" onclick="returnToPath()">Continue Map ▶</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let quizData = [];
+    let currentQ = 0;
+    let score = 0; // Represents total points (20 per question)
+    let canClick = true;
+    
+    const LEVEL_ID = {{ level_id }};
+
+    async function loadQuizQuestions() {
+        try {
+            console.log("Fetching quiz for level:", LEVEL_ID);
+            const response = await fetch('/api/get_level_quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level_id: LEVEL_ID })
+            });
+            
+            const data = await response.json();
+            
+            if (data.questions && data.questions.length > 0) {
+                // Adapt API format to UI format
+                quizData = data.questions.map(q => ({
+                    type: q.type === 'audio' ? 'Listening' : 'Multiple Choice',
+                    text: q.question,
+                    audio: q.word, // For audio playback
+                    options: q.options,
+                    correct: q.correct, // String value
+                    language: q.language || 'es'
+                }));
+            } else {
+                console.warn("No questions returned from API, using fallback.");
+                useFallbackData();
+            }
+            
+            init();
+            
+        } catch (error) {
+            console.error("Error loading quiz:", error);
+            useFallbackData();
+            init();
+        }
+    }
+    
+    function useFallbackData() {
+        quizData = [
+            { type: "Translate", text: "How do you say 'Water'?", audio: "Agua", options: ["Comida", "Agua", "Casa", "Perro"], correct: "Agua", language: "es" },
+            { type: "Listening", text: "What did you hear?", audio: "Casa", options: ["House", "Car", "Cat", "Hello"], correct: "House", language: "es" },
+            { type: "Translate", text: "Translate: 'Gracias'", audio: "Gracias", options: ["Please", "Hello", "Thank you", "Good"], correct: "Thank you", language: "es" },
+            { type: "Grammar", text: "Yo ___ pan. (I eat bread)", audio: null, options: ["comes", "como", "comen", "comed"], correct: "como", language: "es" },
+            { type: "Vocabulary", text: "Which is a 'Friend'?", audio: "Amigo", options: ["Enemigo", "Amigo", "Hermano", "Tío"], correct: "Amigo", language: "es" }
+        ];
+    }
+    
+    function init() {
+        initBackground();
+        if (quizData.length > 0) {
+            loadQuestion(0);
+        } else {
+            console.error("No quiz data available.");
+        }
+    }
+    
+    function initBackground() {
+        const bg = document.querySelector('.game-background');
+        if (!bg) return;
+        bg.innerHTML = '';
+        for(let i=0; i<15; i++) {
+            const div = document.createElement('div');
+            div.className = 'bg-shape';
+            const size = Math.random() * 60 + 20;
+            div.style.width = `${size}px`;
+            div.style.height = `${size}px`;
+            div.style.left = `${Math.random() * 100}%`;
+            div.style.top = `${Math.random() * 100 + 10}vh`;
+            div.style.animationDuration = `${Math.random() * 15 + 10}s`;
+            div.style.animationDelay = `-${Math.random() * 20}s`;
+            bg.appendChild(div);
+        }
+    }
+    
+    function loadQuestion(index) {
+        if(index >= quizData.length) {
+            showResults();
+            return;
+        }
+        
+        const q = quizData[index];
+        const card = document.getElementById('quiz-card');
+        
+        // Intro Animation
+        card.style.animation = 'none';
+        card.offsetHeight; /* trigger reflow */
+        card.style.animation = 'cardEnter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        
+        document.getElementById('q-type').innerText = q.type;
+        document.getElementById('q-text').innerText = q.text;
+        
+        // Show audio button if word/audio is available
+        const audioContainer = document.getElementById('q-audio-container');
+        if (q.audio || (q.type === 'Listening')) {
+             audioContainer.style.display = 'flex';
+        } else {
+             audioContainer.style.display = 'none';
+        }
+        
+        // Options
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        
+        q.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'answer-btn';
+            btn.innerText = opt;
+            // Pass option string as `selected` and correct string as `correct`
+            btn.onclick = () => checkAnswer(opt, q.correct, btn);
+            container.appendChild(btn);
+        });
+        
+        updateProgress();
+        canClick = true;
+    }
+    
+    function checkAnswer(selected, correct, btnElement) {
+        if(!canClick) return;
+        canClick = false;
+        
+        const card = document.getElementById('quiz-card');
+        
+        // String comparison
+        if (selected === correct) {
+            // Correct
+            btnElement.classList.add('correct');
+            score += 20; 
+            scoreDisplay();
+            speakMascot('Correct! 🎉');
+            fireConfetti();
+        } else {
+            // Incorrect
+            btnElement.classList.add('incorrect');
+            card.classList.add('shake');
+            setTimeout(() => card.classList.remove('shake'), 500);
+            
+            // Highlight correct one
+            const options = document.querySelectorAll('.answer-btn');
+            options.forEach(btn => {
+                if (btn.innerText === correct) {
+                    btn.classList.add('correct');
+                }
+            });
+            
+            speakMascot('Oops! Not quite.');
+        }
+        
+        setTimeout(() => {
+            currentQ++;
+            loadQuestion(currentQ);
+        }, 1500);
+    }
+    
+    function playAudio() {
+        const q = quizData[currentQ];
+        // Speak the word associated with the question
+        if(q.audio) {
+            const u = new SpeechSynthesisUtterance(q.audio);
+            u.lang = (q.language === 'es') ? 'es-ES' : 'en-US';
+            u.rate = 0.8;
+            speechSynthesis.speak(u);
+        }
+    }
+    
+    function fireConfetti() {
+        for(let i=0; i<30; i++) {
+            const c = document.createElement('div');
+            c.className = 'confetti';
+            c.style.left = Math.random() * 100 + '%';
+            c.style.backgroundColor = ['#f00', '#0f0', '#00f', '#ff0', '#f0f'][Math.floor(Math.random()*5)];
+            c.style.animationDuration = (Math.random() * 2 + 1) + 's';
+            document.body.appendChild(c);
+            setTimeout(() => c.remove(), 3000);
+        }
+    }
+    
+    function showResults() {
+        // Calculate percentage (Assuming 5 questions -> 100 max score)
+        // If more questions, scale accordingly. 
+        // Here we just use: (score / (total_questions * 20)) * 100
+        const maxScore = quizData.length * 20;
+        const percentage = Math.round((score / maxScore) * 100);
+        const passed = percentage >= 60;
+        const xpEarned = passed ? 50 : 10;
+        
+        document.getElementById('complete-overlay').style.display = 'flex';
+        document.getElementById('final-score').innerText = `Score: ${percentage}%`;
+        
+        const title = passed ? "Quiz Complete!" : "Keep Trying!";
+        const msg = passed ? "You've mastered this level!" : "Review the material and try again.";
+        
+        document.querySelector('.modal-box h2').innerText = title;
+        document.querySelector('.modal-box p').innerText = msg;
+        
+        speakMascot(passed ? "Great job! 🎉" : "You can do it next time!");
+        
+        saveProgress(percentage, xpEarned, passed);
+    }
+    
+    function scoreDisplay() {
+        document.getElementById('score-display').innerText = score;
+    }
+    
+    function speakMascot(text) {
+         const bubble = document.getElementById('mascot-speech');
+         if (!bubble) return;
+         bubble.innerText = text;
+         bubble.style.opacity = 1;
+         bubble.style.transform = 'translateY(0)';
+         setTimeout(() => {
+             bubble.style.opacity = 0; 
+             bubble.style.transform = 'translateY(10px)';
+         }, 3000);
+    }
+    
+    function updateProgress() {
+        document.getElementById('q-counter').innerText = `${currentQ + 1}/${quizData.length}`;
+        const pct = ((currentQ) / quizData.length) * 100;
+        document.getElementById('progress-bar').style.width = `${pct}%`;
+    }
+    
+    function saveProgress(percentage, xpEarned, passed) {
+        fetch('/api/save_level_progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                level_id: LEVEL_ID,
+                score: percentage,
+                xp_earned: xpEarned,
+                passed: passed
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Progress saved:", data);
+            
+            // Allow button to redirect
+            const btn = document.querySelector('.modal-box .next-btn');
+            
+            if (data.redirect) {
+                 // Certificate or special redirect
+                 sessionStorage.setItem('redirect_url', data.redirect);
+            } else if (data.next_level && passed) {
+                 // Next level
+                 const url = '/learning/level/' + data.next_level + '/flashcards';
+                 sessionStorage.setItem('redirect_url', url);
+            } else {
+                 // Retry or remain
+                 sessionStorage.setItem('redirect_url', '/learning_path');
+                 if(btn) btn.innerText = "Back to Path";
+            }
+        })
+        .catch(err => console.error("Save error:", err));
+    }
+    
+    // Begin loading
+    loadQuizQuestions();
+    
+    function returnToPath() {
+        // User requested to go back to learning path explicitly
+        window.location.href = "/learning_path";
+    }
+</script>
+{% endblock %}

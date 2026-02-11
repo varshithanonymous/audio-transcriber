@@ -1,0 +1,285 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Certificate - LinguaVoice{% endblock %}
+{% block page_title %}🎓 Congratulations!{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .certificate-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 1rem;
+    }
+    
+    .certificate {
+        background: white;
+        border: 15px solid #f59e0b;
+        border-radius: 2rem;
+        padding: 4rem;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        position: relative;
+    }
+    
+    .certificate::before {
+        content: '';
+        position: absolute;
+        top: 30px;
+        left: 30px;
+        right: 30px;
+        bottom: 30px;
+        border: 3px solid #fbbf24;
+        pointer-events: none;
+    }
+    
+    .cert-header {
+        margin-bottom: 2rem;
+    }
+    
+    .cert-seal {
+        font-size: 5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .cert-title {
+        font-size: 3rem;
+        font-weight: 900;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+    
+    .cert-subtitle {
+        font-size: 1.25rem;
+        color: #64748b;
+    }
+    
+    .cert-body {
+        margin: 3rem 0;
+        border-top: 2px solid #e5e7eb;
+        border-bottom: 2px solid #e5e7eb;
+        padding: 3rem 0;
+    }
+    
+    .cert-text {
+        font-size: 1.125rem;
+        color: #1e293b;
+        line-height: 1.8;
+        margin-bottom: 2rem;
+    }
+    
+    .user-name {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #f59e0b;
+        margin: 2rem 0;
+        font-style: italic;
+    }
+    
+    .cert-achievement {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #64748b;
+        margin-top: 2rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+    
+    .stat-item {
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #f59e0b;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-top: 0.5rem;
+    }
+    
+    .cert-footer {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 3rem;
+    }
+    
+    .signature {
+        text-align: center;
+    }
+    
+    .signature-line {
+        border-top: 2px solid #1e293b;
+        width: 200px;
+        margin: 0 auto 0.5rem;
+    }
+    
+    .signature-name {
+        font-weight: 700;
+        color: #1e293b;
+    }
+    
+    .signature-title {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+    
+    .action-buttons {
+        text-align: center;
+        margin-top: 3rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+    
+    .btn {
+        padding: 1rem 2.5rem;
+        border: none;
+        border-radius: 1rem;
+        font-size: 1.125rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background: #f59e0b;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #d97706;
+    }
+    
+    .btn-secondary {
+        background: #e5e7eb;
+        color: #1e293b;
+    }
+    
+    .btn-secondary:hover {
+        background: #d1d5db;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="certificate-container">
+    <div class="certificate" id="certificate">
+        <div class="cert-header">
+            <div class="cert-seal">🎓</div>
+            <div class="cert-title">Certificate of Completion</div>
+            <div class="cert-subtitle">LinguaVoice Language Mastery Program</div>
+        </div>
+        
+        <div class="cert-body">
+            <div class="cert-text">
+                This is to certify that
+            </div>
+            
+            <div class="user-name">{{ user_name }}</div>
+            
+            <div class="cert-text">
+                has successfully completed all 100 levels of the
+                <strong>{{ language_name }}</strong> language learning program
+                and has demonstrated exceptional proficiency in:
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">500+</div>
+                    <div class="stat-label">Words Mastered</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">100</div>
+                    <div class="stat-label">Levels Completed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ total_xp }}</div>
+                    <div class="stat-label">Total XP Earned</div>
+                </div>
+            </div>
+            
+            <div class="cert-achievement">
+                Achievement unlocked on <strong id="cert-date"></strong>
+            </div>
+        </div>
+        
+        <div class="cert-footer">
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div class="signature-name">AI Tutor</div>
+                <div class="signature-title">Chief Learning Officer</div>
+            </div>
+            
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div class="signature-name">LinguaVoice</div>
+                <div class="signature-title">Language Platform</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <button class="btn btn-primary" onclick="downloadCertificate()">
+            📥 Download Certificate
+        </button>
+        <button class="btn btn-secondary" onclick="shareCertificate()">
+            📤 Share Achievement
+        </button>
+        <button class="btn btn-secondary" onclick="backToPath()">
+            🏠 Back to Learning Path
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Set current date
+    const today = new Date();
+    document.getElementById('cert-date').textContent = today.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    
+    function downloadCertificate() {
+        // Use html2canvas to convert certificate to image
+        alert('Certificate download will be implemented with html2canvas library!');
+        // TODO: Implement actual download
+    }
+    
+    function shareCertificate() {
+        const text = `I just completed all 100 levels of {{ language_name }} on LinguaVoice! 🎓`;
+        if (navigator.share) {
+            navigator.share({
+                title: 'LinguaVoice Certificate',
+                text: text
+            });
+        } else {
+            alert('Share: ' + text);
+        }
+    }
+    
+    function backToPath() {
+        window.location.href = '/learning_path';
+    }
+</script>
+{% endblock %}

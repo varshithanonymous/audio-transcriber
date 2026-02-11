@@ -1,0 +1,262 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Dashboard - LinguaVoice{% endblock %}
+{% block page_title %}Welcome back, {{ user_name }}! 👋{% endblock %}
+{% block page_subtitle %}Ready to continue your language mastery journey?{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border-color: #3b82f6;
+    }
+    
+    .stat-icon {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-change {
+        font-size: 0.875rem;
+        color: #10b981;
+    }
+    
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom:2rem;
+    }
+    
+    .action-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid #e5e7eb;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        border-color: #3b82f6;
+    }
+    
+    .action-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+    }
+    
+    .action-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    
+    .action-description {
+        color: #6b7280;
+        line-height: 1.6;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+    }
+    
+    .activity-feed {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .activity-item {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-icon-wrap {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    
+    .activity-content {
+        flex: 1;
+    }
+    
+    .activity-title {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+    
+    .activity-time {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-label">Total XP</div>
+        <div class="stat-value" id="total-xp">1,240</div>
+        <div class="stat-change">↗ +120 this week</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-label">Current Streak</div>
+        <div class="stat-value" id="streak">12</div>
+        <div class="stat-change">Keep it up!</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">📚</div>
+        <div class="stat-label">Vocabulary</div>
+        <div class="stat-value" id="vocab-count">85</div>
+        <div class="stat-change">+7 new words</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-label">This Week</div>
+        <div class="stat-value" id="time-spent">5h</div>
+        <div class="stat-change">32 min today</div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<h2 class="section-title">Quick Actions</h2>
+<div class="quick-actions">
+    <a href="/transcription" class="action-card">
+        <div class="action-icon">🎙️</div>
+        <div class="action-title">Start Transcribing</div>
+        <div class="action-description">Practice your speaking with real-time transcription</div>
+    </a>
+    
+    <a href="/ai_tutor" class="action-card">
+        <div class="action-icon">🤖</div>
+        <div class="action-title">AI Conversation</div>
+        <div class="action-description">Chat with your intelligent language tutor</div>
+    </a>
+    
+    <a href="/vocabulary" class="action-card">
+        <div class="action-icon">📚</div>
+        <div class="action-title">Review Vocabulary</div>
+        <div class="action-description">Practice with flashcards and quizzes</div>
+    </a>
+</div>
+
+<!-- Recent Activity -->
+<h2 class="section-title">Recent Activity</h2>
+<div class="activity-feed">
+    <div class="activity-item">
+        <div class="activity-icon-wrap">🎙️</div>
+        <div class="activity-content">
+            <div class="activity-title">Transcription Session</div>
+            <div class="activity-time">30 mins ago · +60 XP</div>
+        </div>
+    </div>
+    
+    <div class="activity-item">
+        <div class="activity-icon-wrap">📚</div>
+        <div class="activity-content">
+            <div class="activity-title">Learned 7 new words</div>
+            <div class="activity-time">2 hours ago · +35 XP</div>
+        </div>
+    </div>
+    
+    <div class="activity-item">
+        <div class="activity-icon-wrap">🔥</div>
+        <div class="activity-content">
+            <div class="activity-title">12-day streak!</div>
+            <div class="activity-time">Today · +10 XP Bonus</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadDashboardData() {
+        try {
+            const [statsRes, vocabRes] = await Promise.all([
+                fetch('/api/stats'),
+                fetch('/api/get_my_spoken_words')
+            ]);
+            
+            const statsData = await statsRes.json();
+            const vocabData = await vocabRes.json();
+            const stats = statsData.stats || {};
+            
+            document.getElementById('total-xp').textContent = (stats.total_xp || 1240).toLocaleString();
+            document.getElementById('streak').textContent = stats.current_streak || 12;
+            document.getElementById('vocab-count').textContent = vocabData.length;
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+        }
+    }
+    
+    loadDashboardData();
+</script>
+{% endblock %}

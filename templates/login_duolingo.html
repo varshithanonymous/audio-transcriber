@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In | LinguaVoice Pro</title>
+    <link rel="stylesheet" href="/static/css/professional.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh;
+            font-family: var(--font-body);
+        }
+        .layout-grid {
+             display: flex;
+             flex-direction: column;
+             align-items: center;
+             width: 100%;
+             max-width: 440px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="layout-grid">
+         <!-- Interactive Mascot -->
+         <div class="mascot-wrapper" style="margin-bottom: 2rem;">
+            <div class="bubble-modern" style="top: -50px; right: -130px; animation-delay: 0.5s;">
+                "Welcome back!"
+            </div>
+            <img src="/static/images/serphawk_logo.jpg" alt="Serp Hawk" class="hawk-mascot-interactive">
+        </div>
+
+        <div class="glass-card animate-up" style="padding: 2.5rem; width: 100%; background: rgba(255,255,255,0.9);">
+            <div class="text-center mb-8">
+                <h1 style="font-size: 1.75rem; color: var(--color-primary); margin-bottom: 0.5rem;">Member Login</h1>
+                <p style="color: #64748B;">Access your professional dashboard</p>
+            </div>
+
+            {% if get_flashed_messages() %}
+                <div style="background: #FEF2F2; color: #EF4444; padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 1.5rem; font-size: 0.9rem; border: 1px solid #FECACA;">
+                    {{ get_flashed_messages()[0] }}
+                </div>
+            {% endif %}
+
+            <form method="POST">
+                <div style="margin-bottom: 1.25rem;">
+                    <label for="email" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #1E293B;">Email Address</label>
+                    <input type="email" id="email" name="email" class="input-premium" placeholder="name@company.com" required>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <label for="password" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #1E293B;">Password</label>
+                    <input type="password" id="password" name="password" class="input-premium" placeholder="Enter your password" required>
+                </div>
+
+                <button type="submit" class="btn-glow" style="width: 100%; font-size: 1rem; background: var(--color-primary);">
+                    Sign In
+                </button>
+            </form>
+
+            <div style="margin-top: 2rem; text-align: center; font-size: 0.9rem; color: #64748B;">
+                Don't have an account? <a href="/signup" style="color: var(--color-accent); font-weight: 700;">Start Free Trial</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/mascot.js"></script>
+</body>
+</html>

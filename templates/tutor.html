@@ -1,0 +1,954 @@
+{% extends "base.html" %}
+
+{% block title %}AI Tutor - LinguaVoice{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tutor-container {
+        min-height: calc(100vh - 80px);
+        padding: 3rem 0;
+        background: linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%);
+    }
+    
+    .tutor-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .tutor-title {
+        font-size: 2.75rem;
+        margin-bottom: 0.75rem;
+        color: var(--navy-900);
+    }
+    
+    .tutor-subtitle {
+        font-size: 1.125rem;
+        color: var(--text-secondary);
+    }
+    
+    /* Mode Selector */
+    .mode-selector {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+        animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+    
+    .mode-card {
+        padding: 2.5rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.4s ease;
+        border: 3px solid transparent;
+    }
+    
+    .mode-card:hover {
+        transform: translateY(-8px);
+        border-color: var(--emerald-500);
+    }
+    
+    .mode-card.active {
+        border-color: var(--emerald-500);
+        background: white;
+        box-shadow: 0 12px 32px rgba(16, 185, 129, 0.25);
+    }
+    
+    .mode-icon {
+        font-size: 4rem;
+        margin-bottom: 1.25rem;
+        display: block;
+    }
+    
+    .mode-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--navy-900);
+        margin-bottom: 0.625rem;
+    }
+    
+    .mode-desc {
+        color: var(--text-secondary);
+        font-size: 0.9375rem;
+    }
+    
+    /* Learning Content */
+    .learning-content {
+        display: none;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .learning-content.active {
+        display: block;
+    }
+    
+    /* Flashcard Mode */
+    .flashcard-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .flashcard {
+        position: relative;
+        width: 100%;
+        height: 450px;
+        perspective: 1000px;
+        margin-bottom: 2rem;
+    }
+    
+    .flashcard-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+    }
+    
+    .flashcard.flipped .flashcard-inner {
+        transform: rotateY(180deg);
+    }
+    
+    .flashcard-front,
+    .flashcard-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 1.5rem;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }
+    
+    .flashcard-back {
+        transform: rotateY(180deg);
+    }
+    
+    .card-word {
+        font-size: 3.5rem;
+        font-weight: 900;
+        font-family: var(--font-display);
+        color: var(--navy-900);
+        margin-bottom: 1rem;
+    }
+    
+    .card-lang {
+        font-size: 1rem;
+        color: var(--emerald-600);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+    
+    .card-meaning {
+        font-size: 1.5rem;
+        color: var(--text-secondary);
+        text-align: center;
+        line-height: 1.8;
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-example {
+        font-style: italic;
+        color: var(--text-muted);
+        text-align: center;
+    }
+    
+    .card-controls {
+        display: flex;
+        gap: 1.25rem;
+        justify-content: center;
+    }
+    
+    .card-btn {
+        padding: 1rem 2.5rem;
+        font-weight: 800;
+        font-size: 1.0625rem;
+        border-radius: 1.125rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-flip {
+        background: var(--gradient-accent);
+        color: white;
+    }
+    
+    .btn-flip:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+    }
+    
+    .btn-next {
+        background: white;
+        color: var(--navy-900);
+        border: 2px solid var(--border-light);
+    }
+    
+    .btn-next:hover {
+        border-color: var(--emerald-500);
+        background: var(--emerald-100);
+    }
+    
+    /* Quiz Mode */
+    .quiz-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .quiz-card {
+        padding: 3rem;
+        margin-bottom: 2rem;
+    }
+    
+    .quiz-question {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--navy-900);
+        margin-bottom: 2.5rem;
+        text-align: center;
+    }
+    
+    .quiz-options {
+        display: grid;
+        gap: 1.25rem;
+    }
+    
+    .quiz-option {
+        padding: 1.5rem 2rem;
+        background: white;
+        border: 3px solid var(--border-light);
+        border-radius: 1.125rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 1.125rem;
+        font-weight: 600;
+        text-align: left;
+    }
+    
+    .quiz-option:hover {
+        border-color: var(--emerald-500);
+        background: var(--emerald-100);
+        transform: translateX(8px);
+    }
+    
+    .quiz-option.correct {
+        border-color: #10B981;
+        background: #D1FAE5;
+    }
+    
+    .quiz-option.incorrect {
+        border-color: #EF4444;
+        background: #FEE2E2;
+    }
+    
+    .quiz-feedback {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: var(--emerald-100);
+        border-radius: 1rem;
+        text-align: center;
+        font-weight: 700;
+        color: var(--emerald-600);
+    }
+    
+    /* Practice Test Mode */
+    .test-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .test-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 2rem;
+        background: white;
+        border-radius: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    
+    .test-timer {
+        font-size: 2rem;
+        font-weight: 900;
+        font-family: var(--font-display);
+        color: var(--emerald-600);
+    }
+    
+    .test-progress {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+    }
+    
+    .test-question {
+        padding: 3rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .question-number {
+        font-size: 0.9375rem;
+        font-weight: 700;
+        color: var(--emerald-600);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+    }
+    
+    .question-text {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--navy-900);
+        margin-bottom: 2rem;
+    }
+    
+    /* Progress Stats */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    .stat-box {
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 3rem;
+        font-weight: 900;
+        font-family: var(--font-display);
+        color: var(--emerald-600);
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.9375rem;
+    }
+    
+    @media (max-width: 968px) {
+        .mode-selector {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .mode-selector {
+            grid-template-columns: 1fr;
+        }
+        .stats-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tutor-container">
+    <div class="container">
+        <!-- Header -->
+        <div class="tutor-header">
+            <h1 class="tutor-title">My Learning Friend 🤝</h1>
+            <p class="tutor-subtitle">Hello! I'm your AI friend. Let's practice and grow together!</p>
+        </div>
+        
+        <!-- Mode Selector -->
+        <div class="mode-selector">
+            <div class="glass-card mode-card active" onclick="switchMode('flashcards')">
+                <span class="mode-icon">🃏</span>
+                <h3 class="mode-title">Flashcards</h3>
+                <p class="mode-desc">Fun interactive cards to learn new words!</p>
+            </div>
+            <div class="glass-card mode-card" onclick="switchMode('quiz')">
+                <span class="mode-icon">❓</span>
+                <h3 class="mode-title">Quick Quiz</h3>
+                <p class="mode-desc">A fun way to test what you've learned.</p>
+            </div>
+            <div class="glass-card mode-card" onclick="switchMode('conversation')">
+                <span class="mode-icon">💬</span>
+                <h3 class="mode-title">Friendly Chat</h3>
+                <p class="mode-desc">Let's talk! I'm here to practice with you.</p>
+            </div>
+            <div class="glass-card mode-card" onclick="switchMode('test')">
+                <span class="mode-icon">🏆</span>
+                <h3 class="mode-title">Skill Challenge</h3>
+                <p class="mode-desc">Ready to show off your progress?</p>
+            </div>
+        </div>
+        
+        <!-- Flashcard Mode -->
+        <div id="flashcards-mode" class="learning-content active">
+            <div class="flashcard-container">
+                <div class="flashcard" id="flashcard">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <div class="card-lang">English</div>
+                            <div class="card-word" id="card-word-front">Hello</div>
+                            <div style="color: var(--text-muted); margin-top: 2rem;">Click "Flip" to see the meaning</div>
+                        </div>
+                        <div class="flashcard-back">
+                            <div class="card-meaning" id="card-meaning">A greeting or expression of goodwill</div>
+                            <div class="card-example" id="card-example">"Hello! How are you today?"</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-controls">
+                    <button class="card-btn btn-flip" onclick="flipCard()">🔄 Flip Card</button>
+                    <button class="card-btn btn-next" onclick="nextCard()">Next →</button>
+                </div>
+                
+                <div class="stats-row">
+                    <div class="glass-card stat-box">
+                        <div class="stat-value" id="cards-studied">0</div>
+                        <div class="stat-label">Cards Studied</div>
+                    </div>
+                    <div class="glass-card stat-box">
+                        <div class="stat-value" id="cards-remaining">10</div>
+                        <div class="stat-label">Remaining</div>
+                    </div>
+                    <div class="glass-card stat-box">
+                        <div class="stat-value">+50</div>
+                        <div class="stat-label">XP Per Card</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quiz Mode -->
+        <div id="quiz-mode" class="learning-content">
+            <div class="quiz-container">
+                <div class="glass-card quiz-card">
+                    <div class="quiz-question" id="quiz-question">What does "Hola" mean in English?</div>
+                    <div class="quiz-options" id="quiz-options">
+                        <div class="quiz-option" onclick="selectAnswer(this, true)">A) Hello</div>
+                        <div class="quiz-option" onclick="selectAnswer(this, false)">B) Goodbye</div>
+                        <div class="quiz-option" onclick="selectAnswer(this, false)">C) Thank you</div>
+                        <div class="quiz-option" onclick="selectAnswer(this, false)">D) Please</div>
+                    </div>
+                    <div id="quiz-feedback" style="display: none;"></div>
+                </div>
+                
+                <div class="stats-row">
+                    <div class="glass-card stat-box">
+                        <div class="stat-value" id="quiz-correct">0</div>
+                        <div class="stat-label">Correct</div>
+                    </div>
+                    <div class="glass-card stat-box">
+                        <div class="stat-value" id="quiz-total">0</div>
+                        <div class="stat-label">Total Questions</div>
+                    </div>
+                    <div class="glass-card stat-box">
+                        <div class="stat-value" id="quiz-score">0%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- AI Conversation Mode -->
+        <div id="conversation-mode" class="learning-content">
+            <div style="display: grid; grid-template-columns: 300px 1fr; gap: 2rem; max-width: 1200px; margin: 0 auto;">
+                <!-- Sidebar -->
+                <div>
+                    <div class="glass-card" style="padding: 2rem; margin-bottom: 1.5rem;">
+                        <h4 style="margin-bottom: 1.5rem; color: var(--navy-900);">Conversation Topics</h4>
+                        <select id="conv-topic" style="width: 100%; padding: 0.875rem; border: 2px solid var(--border-light); border-radius: 0.875rem; font-weight: 700; margin-bottom: 1.5rem;">
+                            <option value="greetings">Greetings</option>
+                            <option value="travel">Travel</option>
+                            <option value="food">Food & Dining</option>
+                            <option value="shopping">Shopping</option>
+                            <option value="weather">Weather</option>
+                        </select>
+                        
+                        <div style="padding: 1.25rem; background: var(--bg-primary); border-radius: 1rem; margin-bottom: 1rem;">
+                            <div style="font-weight: 700; color: var(--navy-900); margin-bottom: 0.5rem;">💡 Tip</div>
+                            <div style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6;">
+                                Try to respond in complete sentences. The AI will adapt to your level!
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card" style="padding: 2rem;">
+                        <h4 style="margin-bottom: 1.25rem; color: var(--navy-900);">Session Stats</h4>
+                        <div style="margin-bottom: 1rem;">
+                            <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.375rem;">Messages Exchanged</div>
+                            <div style="font-size: 2rem; font-weight: 900; font-family: var(--font-display); color: var(--emerald-600);" id="conv-messages">0</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.375rem;">Words Practiced</div>
+                            <div style="font-size: 2rem; font-weight: 900; font-family: var(--font-display); color: var(--emerald-600);" id="conv-words">0</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chat Area -->
+                <div class="glass-card" style="display: flex; flex-direction: column; height: 650px; padding: 0;">
+                    <div style="padding: 2rem; border-bottom: 2px solid var(--border-light); background: white; border-radius: 1.5rem 1.5rem 0 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <img src="/static/images/serphawk_logo.jpg" style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid var(--emerald-500);">
+                                <div>
+                                    <h3 style="margin-bottom: 0.25rem; color: var(--navy-900);">Serp Hawk Tutor</h3>
+                                    <div style="font-size: 0.875rem; color: var(--emerald-600); font-weight: 700;">● Online</div>
+                                </div>
+                            </div>
+                            <button class="btn btn-secondary" style="padding: 0.75rem 1.5rem;" onclick="clearConversation()">Clear Chat</button>
+                        </div>
+                    </div>
+                    
+                    <div id="conv-messages-area" style="flex: 1; overflow-y: auto; padding: 2rem; display: flex; flex-direction: column; gap: 1.25rem; background: #FAFAFA;">
+                        <div class="message ai">
+                            <div class="message-avatar">🦅</div>
+                            <div>
+                                <div class="message-content">
+                                    <strong>Hello! I'm your Serp Hawk tutor.</strong> I'm here to help you practice conversation in English, Spanish, or Hindi. Choose a topic and let's start chatting! What would you like to talk about today?
+                                </div>
+                                <div class="message-time">Just now</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="padding: 1.75rem 2rem; background: white; border-radius: 0 0 1.5rem 1.5rem; border-top: 2px solid var(--border-light);">
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <button class="btn btn-secondary" style="padding: 0.875rem 1.25rem;" onclick="startVoiceInput()" title="Voice Input">
+                                🎤
+                            </button>
+                            <input 
+                                type="text" 
+                                id="conv-input"
+                                class="chat-input" 
+                                placeholder="Type your message or click the mic..."
+                                style="flex: 1;"
+                                onkeypress="if(event.key==='Enter') sendConversationMessage()">
+                            <button class="send-btn" onclick="sendConversationMessage()">
+                                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Practice Test Mode -->
+        <div id="test-mode" class="learning-content">
+            <div class="test-container">
+                <div class="test-header">
+                    <div class="test-timer" id="test-timer">10:00</div>
+                    <div class="test-progress" id="test-progress">Question 1 of 10</div>
+                </div>
+                
+                <div class="glass-card test-question">
+                    <div class="question-number">Question 1</div>
+                    <div class="question-text" id="test-question-text">Translate: "Good morning" to Spanish</div>
+                    <div class="quiz-options" id="test-options">
+                        <div class="quiz-option" onclick="selectTestAnswer(this, true)">A) Buenos días</div>
+                        <div class="quiz-option" onclick="selectTestAnswer(this, false)">B) Buenas tardes</div>
+                        <div class="quiz-option" onclick="selectTestAnswer(this, false)">C) Buenas noches</div>
+                        <div class="quiz-option" onclick="selectTestAnswer(this, false)">D) Hola</div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button class="btn btn-primary btn-large" onclick="nextTestQuestion()">Next Question →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentMode = 'flashcards';
+    let cardsStudied = 0;
+    let quizCorrect = 0;
+    let quizTotal = 0;
+    let testQuestion = 1;
+    let testTimeRemaining = 600; // 10 minutes in seconds
+    let chatHistory = [];
+    
+    // Injected from backend
+    const TARGET_LANG = "{{ target_language }}";
+    const USER_NAME = "{{ user_name }}";
+    
+    const sampleWords = [
+        { word: 'Hello', meaning: 'A greeting or expression of goodwill', example: '"Hello! How are you today?"', lang: 'English' },
+        { word: 'Hola', meaning: 'Hello in Spanish', example: '"¡Hola! ¿Cómo estás?"', lang: 'Spanish' },
+        { word: 'Gracias', meaning: 'Thank you', example: '"Gracias por tu ayuda"', lang: 'Spanish' },
+        { word: 'Friend', meaning: 'A person you know well and like', example: '"She is my best friend"', lang: 'English' },
+        { word: 'Amigo', meaning: 'Friend in Spanish', example: '"Mi amigo es muy simpático"', lang: 'Spanish' },
+    ];
+    
+    let currentCardIndex = 0;
+    let tutorWords = []; // Real words from backend
+    const CURRENT_LEVEL = {{ current_level or 1 }};
+    
+    // Initialize content load
+    window.addEventListener('DOMContentLoaded', () => {
+        loadTutorContent(CURRENT_LEVEL);
+    });
+
+    async function loadTutorContent(level) {
+        try {
+            const response = await fetch(`/api/tutor/get_content?level=${level}`);
+            const data = await response.json();
+            if (data.words && data.words.length > 0) {
+                tutorWords = data.words;
+                updateFlashcardUI();
+                updateQuizUI();
+            }
+        } catch (e) {
+            console.error("Failed to load tutor content", e);
+            tutorWords = sampleWords; // Fallback to samples if API fails
+        }
+    }
+
+    function switchMode(mode) {
+        currentMode = mode;
+        
+        // Update mode cards
+        document.querySelectorAll('.mode-card').forEach(card => card.classList.remove('active'));
+        // Find the card that was clicked (using event.currentTarget if called from onclick)
+        // Since switchMode is called from inline onclick, event is available
+        if (event && event.currentTarget) {
+            event.currentTarget.classList.add('active');
+        } else {
+             // Fallback: find by span icon or title if needed, but usually onclick passes event
+        }
+        
+        // Update content
+        document.querySelectorAll('.learning-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(mode + '-mode').classList.add('active');
+        
+        // Start test timer if test mode
+        if (mode === 'test') {
+            startTestTimer();
+        }
+        
+        // Refresh UI for specific modes
+        if (mode === 'flashcards') updateFlashcardUI();
+        if (mode === 'quiz') updateQuizUI();
+    }
+    
+    function flipCard() {
+        document.getElementById('flashcard').classList.toggle('flipped');
+    }
+    
+    function updateFlashcardUI() {
+        if (!tutorWords.length) return;
+        const card = tutorWords[currentCardIndex];
+        document.getElementById('card-word-front').textContent = card.word;
+        document.querySelector('.card-lang').textContent = card.language || TARGET_LANG;
+        document.getElementById('card-meaning').textContent = card.meaning;
+        document.getElementById('card-example').textContent = card.example || `Example sentence for ${card.word}`;
+        document.getElementById('cards-studied').textContent = cardsStudied;
+        document.getElementById('cards-remaining').textContent = Math.max(0, tutorWords.length - cardsStudied);
+        
+        // Unflip card
+        document.getElementById('flashcard').classList.remove('flipped');
+    }
+
+    function nextCard() {
+        cardsStudied++;
+        currentCardIndex = (currentCardIndex + 1) % tutorWords.length;
+        updateFlashcardUI();
+    }
+    
+    function updateQuizUI() {
+        if (!tutorWords.length) return;
+        const currentWord = tutorWords[quizTotal % tutorWords.length];
+        const questionText = `What does "${currentWord.word}" mean?`;
+        document.getElementById('quiz-question').textContent = questionText;
+        
+        // Generate options (correct + 3 random from other words)
+        let options = [currentWord.meaning];
+        let otherMeanings = tutorWords.filter(w => w.word !== currentWord.word).map(w => w.meaning);
+        
+        // Shuffle and pick 3
+        otherMeanings.sort(() => Math.random() - 0.5);
+        options = options.concat(otherMeanings.slice(0, 3));
+        
+        // Final shuffle
+        options.sort(() => Math.random() - 0.5);
+        
+        const optionsArea = document.getElementById('quiz-options');
+        optionsArea.innerHTML = '';
+        options.forEach((opt, idx) => {
+            const optDiv = document.createElement('div');
+            optDiv.className = 'quiz-option';
+            optDiv.textContent = `${String.fromCharCode(65 + idx)}) ${opt}`;
+            optDiv.onclick = () => selectAnswer(optDiv, opt === currentWord.meaning);
+            optionsArea.appendChild(optDiv);
+        });
+        
+        document.getElementById('quiz-feedback').style.display = 'none';
+        document.getElementById('quiz-total').textContent = quizTotal;
+        document.getElementById('quiz-correct').textContent = quizCorrect;
+        const accuracy = quizTotal > 0 ? Math.round((quizCorrect / quizTotal) * 100) : 0;
+        document.getElementById('quiz-score').textContent = accuracy + '%';
+    }
+
+    function selectAnswer(element, isCorrect) {
+        document.querySelectorAll('.quiz-option').forEach(opt => opt.style.pointerEvents = 'none');
+        
+        quizTotal++;
+        const currentWord = tutorWords[(quizTotal-1) % tutorWords.length];
+        
+        if (isCorrect) {
+            quizCorrect++;
+            element.classList.add('correct');
+        } else {
+            element.classList.add('incorrect');
+            // Show correct answer
+            document.querySelectorAll('.quiz-option').forEach(opt => {
+                const optText = opt.textContent.split(') ')[1];
+                if (optText === currentWord.meaning) {
+                    opt.classList.add('correct');
+                }
+            });
+        }
+        
+        setTimeout(() => {
+            updateQuizUI(); // Next question
+            document.querySelectorAll('.quiz-option').forEach(opt => {
+                opt.style.pointerEvents = 'auto';
+            });
+        }, 1500);
+    }
+    
+    function selectTestAnswer(element, isCorrect) {
+        document.querySelectorAll('#test-options .quiz-option').forEach(opt => opt.style.pointerEvents = 'none');
+        
+        if (isCorrect) {
+            element.classList.add('correct');
+        } else {
+            element.classList.add('incorrect');
+            // Show correct answer logic can be added here if desired, but tests usually don't show info immediately
+        }
+    }
+    
+    function nextTestQuestion() {
+        if (!tutorWords.length) return;
+        
+        testQuestion++;
+        if (testQuestion > tutorWords.length) {
+            alert(`Test completed! You studied ${tutorWords.length} words. Great job! 🎉`);
+            testQuestion = 1;
+            switchMode('flashcards');
+            return;
+        }
+        
+        updateTestUI();
+    }
+    
+    function updateTestUI() {
+        if (!tutorWords.length) return;
+        
+        const currentWord = tutorWords[(testQuestion - 1) % tutorWords.length];
+        document.getElementById('test-progress').textContent = `Question ${testQuestion} of ${tutorWords.length}`;
+        document.querySelector('#test-mode .question-number').textContent = `Question ${testQuestion}`;
+        document.getElementById('test-question-text').textContent = `Translate: "${currentWord.word}" to English (or meaning)`;
+        
+        // Options like Quiz
+        let options = [currentWord.meaning];
+        let otherMeanings = tutorWords.filter(w => w.word !== currentWord.word).map(w => w.meaning);
+        otherMeanings.sort(() => Math.random() - 0.5);
+        options = options.concat(otherMeanings.slice(0, 3));
+        options.sort(() => Math.random() - 0.5);
+        
+        const optionsArea = document.getElementById('test-options');
+        optionsArea.innerHTML = '';
+        options.forEach((opt, idx) => {
+            const optDiv = document.createElement('div');
+            optDiv.className = 'quiz-option';
+            optDiv.textContent = `${String.fromCharCode(65 + idx)}) ${opt}`;
+            optDiv.onclick = () => selectTestAnswer(optDiv, opt === currentWord.meaning);
+            optionsArea.appendChild(optDiv);
+        });
+    }
+    
+    function startTestTimer() {
+        if (window.testTimerInterval) clearInterval(window.testTimerInterval);
+        
+        updateTestUI();
+        
+        window.testTimerInterval = setInterval(() => {
+            if (testTimeRemaining > 0 && currentMode === 'test') {
+                testTimeRemaining--;
+                const minutes = Math.floor(testTimeRemaining / 60);
+                const seconds = testTimeRemaining % 60;
+                document.getElementById('test-timer').textContent = 
+                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            } else if (testTimeRemaining <= 0) {
+                 clearInterval(window.testTimerInterval);
+                 alert("Time is up! Test finished.");
+                 switchMode('flashcards');
+            }
+        }, 1000);
+    }
+
+    // --- AI Conversation Logic ---
+    
+    function appendMessage(text, isUser) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+        
+        // Basic structure: Avatar + Content
+        // Note: For user, we might align right. The CSS needs to support 'message user'.
+        // Looking at HTML, .message.ai exists. .message.user might need styling.
+        // Let's deduce CSS from existing HTML or add inline styles for safety.
+        
+        let avatar = isUser ? '👤' : '🦅';
+        let contentClass = 'message-content';
+        let alignStyle = isUser ? 'flex-direction: row-reverse; text-align: right;' : '';
+        let bgStyle = isUser ? 'background: #d1fae5; color: #064e3b;' : ''; // Greenish for user
+        
+        msgDiv.style.cssText = `display: flex; gap: 1rem; margin-bottom: 1rem; ${alignStyle}`;
+        
+        msgDiv.innerHTML = `
+            <div class="message-avatar" style="font-size: 1.5rem;">${avatar}</div>
+            <div>
+                <div class="message-content" style="padding: 1rem; border-radius: 1rem; max-width: 80%; ${bgStyle} ${isUser ? 'border-top-right-radius: 0;' : 'border-top-left-radius: 0; background: white; border: 1px solid #e5e7eb;'}">
+                    ${text}
+                </div>
+                <div class="message-time" style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem;">Just now</div>
+            </div>
+        `;
+        
+        document.getElementById('conv-messages-area').appendChild(msgDiv);
+        document.getElementById('conv-messages-area').scrollTop = document.getElementById('conv-messages-area').scrollHeight;
+        
+        // Update stats
+        if (isUser) {
+            const words = text.split(' ').length;
+            const currentWords = parseInt(document.getElementById('conv-words').textContent || '0');
+            document.getElementById('conv-words').textContent = currentWords + words;
+            
+            const currentMsgs = parseInt(document.getElementById('conv-messages').textContent || '0');
+            document.getElementById('conv-messages').textContent = currentMsgs + 1;
+        }
+        
+        if (!isUser) {
+             chatHistory.push({ user: chatHistory[chatHistory.length-1]?.user || "", ai: text });
+        } else {
+             chatHistory.push({ user: text, ai: "" }); // Will fill AI later or struct differently
+        }
+    }
+    
+    async function sendConversationMessage() {
+        const input = document.getElementById('conv-input');
+        const text = input.value.trim();
+        if (!text) return;
+        
+        // UI Update
+        appendMessage(text, true);
+        input.value = '';
+        
+        // Add loading indicator
+        const loadingId = 'loading-' + Date.now();
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = loadingId;
+        loadingDiv.innerHTML = '<div style="margin-left: 3.5rem; color: #6b7280; font-style: italic;">Thinking...</div>';
+        document.getElementById('conv-messages-area').appendChild(loadingDiv);
+        
+        try {
+            const response = await fetch('/api/ai_tutor_chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: text,
+                    base_language: 'en', // Assuming base is English for now
+                    target_language: TARGET_LANG,
+                    history: chatHistory
+                })
+            });
+            
+            const data = await response.json();
+            
+            // Remove loading
+            document.getElementById(loadingId).remove();
+            
+            if (data.reply) {
+                appendMessage(data.reply, false);
+                
+                // Speak the reply
+                speakText(data.reply);
+            } else if (data.error) {
+                alert('Error: ' + data.error);
+            }
+        } catch (e) {
+            document.getElementById(loadingId).remove();
+            console.error(e);
+            alert('Failed to connect to AI Tutor');
+        }
+    }
+    
+    function startVoiceInput() {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert('Voice input not supported in this browser. Please use Chrome.');
+            return;
+        }
+        
+        const recognition = new webkitSpeechRecognition();
+        recognition.lang = TARGET_LANG === 'es' ? 'es-ES' : (TARGET_LANG === 'hi' ? 'hi-IN' : 'en-US');
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        
+        recognition.start();
+        
+        recognition.onstart = function() {
+            document.getElementById('conv-input').placeholder = 'Listening...';
+        };
+        
+        recognition.onend = function() {
+            document.getElementById('conv-input').placeholder = 'Type your message or click the mic...';
+        };
+        
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            document.getElementById('conv-input').value = transcript;
+            sendConversationMessage();
+        };
+    }
+    
+    function clearConversation() {
+        const area = document.getElementById('conv-messages-area');
+        // Keep only the first welcome message
+        const welcome = area.firstElementChild;
+        area.innerHTML = '';
+        if (welcome) area.appendChild(welcome);
+        chatHistory = [];
+        document.getElementById('conv-words').textContent = '0';
+        document.getElementById('conv-messages').textContent = '0';
+    }
+    
+    function speakText(text) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        // Map simplified lang codes to locale
+        const locales = {
+            'es': 'es-ES',
+            'hi': 'hi-IN', 
+            'en': 'en-US',
+            'fr': 'fr-FR',
+            'de': 'de-DE'
+        };
+        utterance.lang = locales[TARGET_LANG] || 'en-US';
+        window.speechSynthesis.speak(utterance);
+    }
+
+</script>
+{% endblock %}

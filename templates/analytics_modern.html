@@ -1,0 +1,330 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Analytics - LinguaVoice{% endblock %}
+{% block page_title %}Analytics Dashboard 📈{% endblock %}
+{% block page_subtitle %}Track your progress and see detailed insights on your learning{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-overview {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        text-align: center;
+    }
+    
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 2rem;
+    }
+    
+    .chart-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+    }
+    
+    .progress-bar-container {
+        margin-bottom: 1.5rem;
+    }
+    
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.9375rem;
+    }
+    
+    .progress-bar {
+        height: 12px;
+        background: #f3f4f6;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        border-radius: 1rem;
+        transition: width 1s ease;
+    }
+    
+    .language-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .language-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .language-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .language-flag {
+        font-size: 2rem;
+    }
+    
+    .language-name {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    
+    .milestone-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .milestone-item {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        border: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .milestone-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    
+    .milestone-info {
+        flex: 1;
+    }
+    
+    .milestone-title {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+    
+    .milestone-date {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Overview -->
+<div class="stats-overview">
+    <div class="stat-card">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-value" id="total-xp">0</div>
+        <div class="stat-label">Total XP</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">📚</div>
+        <div class="stat-value" id="total-words">0</div>
+        <div class="stat-label">Words Learned</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-value" id="streak">0</div>
+        <div class="stat-label">Day Streak</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-value" id="total-time">0h</div>
+        <div class="stat-label">Total Time</div>
+    </div>
+</div>
+
+<!-- Progress by Skill -->
+<div class="chart-container">
+    <h3 class="chart-title">Progress by Skill</h3>
+    
+    <div class="progress-bar-container">
+        <div class="progress-label">
+            <span>Speaking</span>
+            <span id="speaking-pct">0%</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="speaking-bar" style="width: 0%; background: linear-gradient(90deg, #10b981, #059669);"></div>
+        </div>
+    </div>
+    
+    <div class="progress-bar-container">
+        <div class="progress-label">
+            <span>Vocabulary</span>
+            <span id="vocab-pct">0%</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="vocab-bar" style="width: 0%; background: linear-gradient(90deg, #3b82f6, #2563eb);"></div>
+        </div>
+    </div>
+    
+    <div class="progress-bar-container">
+        <div class="progress-label">
+            <span>Comprehension</span>
+            <span id="comp-pct">0%</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="comp-bar" style="width: 0%; background: linear-gradient(90deg, #8b5cf6, #7c3aed);"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Language Breakdown -->
+<div class="chart-container">
+    <h3 class="chart-title">Language Breakdown</h3>
+    <div class="language-grid" id="language-grid">
+        <!-- Populated by JS -->
+    </div>
+</div>
+
+<!-- Milestones -->
+<div class="chart-container">
+    <h3 class="chart-title">Recent Milestones</h3>
+    <div class="milestone-list" id="milestones">
+        <!-- Populated by JS -->
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadAnalytics() {
+        try {
+            const [statsRes, vocabRes] = await Promise.all([
+                fetch('/api/stats'),
+                fetch('/api/get_my_spoken_words')
+            ]);
+            
+            const statsData = await statsRes.json();
+            const vocabData = await vocabRes.json();
+            
+            const stats = statsData.stats || {};
+            
+            // Update overview stats
+            document.getElementById('total-xp').textContent = (stats.total_xp || 0).toLocaleString();
+            document.getElementById('total-words').textContent = vocabData.length;
+            document.getElementById('streak').textContent = stats.current_streak || 0;
+            document.getElementById('total-time').textContent = Math.floor((stats.total_xp || 0) / 10) + 'h';
+            
+            // Update skill progress
+            animateProgress('speaking-bar', 'speaking-pct', 75);
+            animateProgress('vocab-bar', 'vocab-pct', Math.min((vocabData.length / 100) * 100, 100));
+            animateProgress('comp-bar', 'comp-pct', 60);
+            
+            // Language breakdown
+            const languageStats = {};
+            vocabData.forEach(word => {
+                languageStats[word.language] = (languageStats[word.language] || 0) + 1;
+            });
+            
+            renderLanguageBreakdown(languageStats);
+            renderMilestones(stats);
+            
+        } catch (error) {
+            console.error('Error loading analytics:', error);
+        }
+    }
+    
+    function animateProgress(barId, labelId, targetPercent) {
+        const bar = document.getElementById(barId);
+        const label = document.getElementById(labelId);
+        
+        setTimeout(() => {
+            bar.style.width = targetPercent + '%';
+            label.textContent = Math.round(targetPercent) + '%';
+        }, 100);
+    }
+    
+    function renderLanguageBreakdown(stats) {
+        const container = document.getElementById('language-grid');
+        const languages = {
+            en: { name: 'English', flag: '🇬🇧' },
+            es: { name: 'Spanish', flag: '🇪🇸' },
+            hi: { name: 'Hindi', flag: '🇮🇳' }
+        };
+        
+        container.innerHTML = Object.entries(stats).map(([lang, count]) => {
+            const info = languages[lang] || { name: lang, flag: '🌐' };
+            return `
+                <div class="language-card">
+                    <div class="language-header">
+                        <div class="language-flag">${info.flag}</div>
+                        <div class="language-name">${info.name}</div>
+                    </div>
+                    <div style="font-size: 2rem; font-weight: 700; color: #1e293b;">${count}</div>
+                    <div style="font-size: 0.875rem; color: #6b7280;">words learned</div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function renderMilestones(stats) {
+        const milestones = [
+            { icon: '🎉', title: 'First 50 Words!', date: '2 days ago' },
+            { icon: '🔥', title: '7-Day Streak', date: '1 week ago' },
+            { icon: '⭐', title: '1000 XP Earned', date: '2 weeks ago' }
+        ];
+        
+        document.getElementById('milestones').innerHTML = milestones.map(m => `
+            <div class="milestone-item">
+                <div class="milestone-icon">${m.icon}</div>
+                <div class="milestone-info">
+                    <div class="milestone-title">${m.title}</div>
+                    <div class="milestone-date">${m.date}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    loadAnalytics();
+</script>
+{% endblock %}

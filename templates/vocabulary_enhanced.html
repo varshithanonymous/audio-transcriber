@@ -1,0 +1,266 @@
+{% extends "base_classic.html" %}
+
+{% block title %}Vocabulary | LinguaVoice Pro{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 2rem;">
+    <!-- Header -->
+    <div class="flex-between items-center mb-8">
+        <div>
+            <h1>Vocabulary Bank</h1>
+            <p style="color: var(--color-text-muted);">Manage your dictionaries and validate new terms.</p>
+        </div>
+        <div class="flex gap-2">
+            <!-- Tabs as Pills -->
+            <button class="btn btn-primary" onclick="switchSection('section-new-words')">My Words</button>
+            <button class="btn btn-outline" onclick="switchSection('section-oov')">OOV</button>
+            <button class="btn btn-outline" onclick="switchSection('section-learn-new')">Discover</button>
+            <button class="btn btn-outline" onclick="switchSection('section-validation')">Validation</button>
+        </div>
+    </div>
+
+    <!-- Sections (Logic kept from previous refactor, styling updated) -->
+    
+    <!-- SECTION 1: MY WORDS -->
+    <div id="section-new-words" class="vocab-section active">
+        <div class="card mb-4" style="padding: 1rem;">
+             <input type="text" id="my-vocab-search" placeholder="Filter vocabulary..." style="width: 100%; border: 1px solid var(--color-border); padding: 0.75rem; border-radius: var(--radius-sm); font-family: var(--font-body);">
+        </div>
+        <div id="my-vocab-grid" class="feature-grid">
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <!-- SECTION 2: OOV -->
+    <div id="section-oov" class="vocab-section" style="display:none;">
+        <div class="card mb-4">
+            <h3>Out of Vocabulary</h3>
+            <p style="color: var(--color-text-muted); font-size: 0.9rem;">Terms detected in speech that are not yet in your validated dictionary.</p>
+        </div>
+        <div id="oov-grid" class="feature-grid"></div>
+    </div>
+
+    <!-- SECTION 3: DISCOVER -->
+    <div id="section-learn-new" class="vocab-section" style="display:none;">
+        <div class="flex-between items-center mb-4">
+            <div>
+                 <h3>Discovery Mode</h3>
+                 <p class="text-gray" id="learn-status" style="font-size:0.9rem;">Generating stream...</p>
+            </div>
+            <div class="flex gap-2">
+                <select id="learn-lang-select" onchange="restartLearning()" style="padding: 0.5rem; border-radius: var(--radius-sm); border-color: var(--color-border);">
+                     <option value="en">English</option>
+                     <option value="es">Spanish</option>
+                     <option value="hi">Hindi</option>
+                </select>
+                <button class="btn btn-outline" onclick="toggleLearningLoop()" id="learn-toggle-btn">Pause</button>
+            </div>
+        </div>
+        <div id="learn-grid" class="feature-grid"></div>
+    </div>
+
+    <!-- SECTION 4: VALIDATION -->
+    <div id="section-validation" class="vocab-section" style="display:none;">
+        <div class="flex-between items-center mb-4">
+             <h3>Validation Queue</h3>
+             <select id="validation-lang-filter" onchange="renderValidation()" style="padding: 0.5rem;">
+                <option value="all">All Languages</option>
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="hi">Hindi</option>
+            </select>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <!-- Valid -->
+            <div class="card">
+                <h4 style="color: var(--color-accent-dark); margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem;">
+                    Validated (<span id="count-valid">0</span>)
+                </h4>
+                <div id="valid-list" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+            </div>
+            <!-- Invalid -->
+            <div class="card">
+                <h4 style="color: #EF4444; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem;">
+                    Pending (<span id="count-invalid">0</span>)
+                </h4>
+                <div id="invalid-list" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Reuse the existing JS logic but adapt selectors/classes if needed -->
+<!-- Using raw script for portability here as previous approach -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // --- Global State ---
+    let myVocab = [];
+    let oovWords = [];
+    let learnLoopInterval = null;
+    let isLearning = true;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadMyVocab();
+        loadOOV();
+        // Don't auto-start learn loop until tab switch to save perf
+    });
+
+    function switchSection(id) {
+        document.querySelectorAll('.vocab-section').forEach(el => el.style.display = 'none');
+        document.getElementById(id).style.display = 'block';
+        
+        // Button Styles
+        // Simplified for this demo
+        
+        if (id === 'section-learn-new') {
+            if (!learnLoopInterval) startLearningLoop();
+        } else {
+            stopLearningLoop();
+        }
+    }
+
+    // --- DATA FETCHING (Same as before) ---
+    async function loadMyVocab() {
+        const res = await fetch('/api/get_vocabulary_bank_full');
+        myVocab = await res.json();
+        renderMyVocab();
+        renderValidation();
+    }
+
+    function renderMyVocab() {
+        const query = document.getElementById('my-vocab-search').value.toLowerCase();
+        const container = document.getElementById('my-vocab-grid');
+        
+        const filtered = myVocab.filter(w => w.word.toLowerCase().includes(query));
+        
+        if (filtered.length === 0) {
+            container.innerHTML = '<p class="text-muted">No words found.</p>';
+            return;
+        }
+
+        container.innerHTML = filtered.map(w => `
+            <div class="card" style="padding: 1.25rem;">
+                <div class="flex-between items-center mb-2">
+                    <h3 style="font-size: 1.25rem;">${w.word}</h3>
+                    <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7;">${w.language}</span>
+                </div>
+                <p style="font-size: 0.9rem; color: var(--color-text-muted); line-height: 1.5;">${formatMeaning(w.meaning)}</p>
+                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border); font-size: 0.8rem; color: var(--color-text-muted);">
+                    Uses: ${w.frequency || 1}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function loadOOV() {
+        const res = await fetch('/api/get_oov_words');
+        oovWords = await res.json();
+        const container = document.getElementById('oov-grid');
+        
+        if (oovWords.length === 0) {
+            container.innerHTML = '<p class="text-muted">No OOV words found.</p>';
+            return;
+        }
+
+        container.innerHTML = oovWords.map(w => `
+            <div class="card" style="border-left: 3px solid #F59E0B;">
+                <h3>${w.word}</h3>
+                <p style="font-size: 0.85rem; margin: 0.5rem 0;">Lang: ${w.language.toUpperCase()}</p>
+                <button class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem;" onclick="addToVocab('${w.word}', '${w.language}')">
+                    + Validate
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    async function addToVocab(word, lang) {
+        await fetch(`/api/validate_word_manual?word=${word}&lang=${lang}`);
+        loadOOV();
+        loadMyVocab();
+    }
+
+    // --- LEARNING LOOP ---
+    function startLearningLoop() {
+        fetchNewWords();
+        learnLoopInterval = setInterval(fetchNewWords, 3000);
+        document.getElementById('learn-toggle-btn').textContent = "Pause";
+    }
+
+    function stopLearningLoop() {
+        clearInterval(learnLoopInterval);
+        learnLoopInterval = null;
+    }
+    
+    function toggleLearningLoop() {
+        if (learnLoopInterval) {
+            stopLearningLoop();
+            document.getElementById('learn-toggle-btn').textContent = "Resume";
+        } else {
+            startLearningLoop();
+            document.getElementById('learn-toggle-btn').textContent = "Pause";
+        }
+    }
+    
+    function restartLearning() {
+        document.getElementById('learn-grid').innerHTML = '<p>Refreshing...</p>';
+        stopLearningLoop();
+        startLearningLoop();
+    }
+
+    async function fetchNewWords() {
+        const lang = document.getElementById('learn-lang-select').value;
+        try {
+            const res = await fetch(`/api/auto_generate_vocab?lang=${lang}&count=5`);
+            const words = await res.json();
+            
+            const container = document.getElementById('learn-grid');
+            const html = words.map(w => `
+                <div class="card" style="border-top: 3px solid var(--color-accent);">
+                    <h3 style="color: var(--color-primary);">${w.word}</h3>
+                    <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-top: 0.5rem;">${formatMeaning(w.meaning)}</p>
+                </div>
+            `).join('');
+            container.innerHTML = html;
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    
+    // --- VALIDATION RENDER ---
+    function renderValidation() {
+        const langFilter = document.getElementById('validation-lang-filter').value;
+        let filtered = myVocab;
+        if (langFilter !== 'all') filtered = myVocab.filter(w => w.language === langFilter);
+        
+        const valid = filtered.filter(w => w.is_valid);
+        const invalid = filtered.filter(w => !w.is_valid);
+        
+        document.getElementById('count-valid').textContent = valid.length;
+        document.getElementById('count-invalid').textContent = invalid.length;
+        
+        document.getElementById('valid-list').innerHTML = valid.map(w => `
+            <div style="padding: 0.5rem; background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 4px; font-size: 0.9rem;">
+                <strong>${w.word}</strong>
+            </div>
+        `).join('');
+        
+        document.getElementById('invalid-list').innerHTML = invalid.map(w => `
+            <div style="padding: 0.5rem; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 4px; font-size: 0.9rem;">
+                <strong>${w.word}</strong>
+            </div>
+        `).join('');
+    }
+
+    function formatMeaning(m) {
+        if (!m) return 'Loading definition...';
+        return m.split('|')[0];
+    }
+    
+     // Search Listener
+    document.getElementById('my-vocab-search').addEventListener('input', renderMyVocab);
+</script>
+{% endblock %}

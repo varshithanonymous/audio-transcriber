@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - LinguaVoice</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/css/classic.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f97316 0%, #10b981 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .auth-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            max-width: 1100px;
+            width: 90%;
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .auth-visual {
+            background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+            padding: 4rem 3rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .auth-visual::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        }
+        
+        .visual-mascot {
+            font-size: 10rem;
+            animation: celebrate 3s ease-in-out infinite;
+            filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.3));
+            position: relative;
+            z-index: 1;
+        }
+        
+        .visual-content {
+            text-align: center;
+            color: white;
+            margin-top: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .visual-content h2 {
+            font-family: var(--font-serif);
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: white;
+        }
+        
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .benefit-badge {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .benefit-icon {
+            font-size: 1.5rem;
+        }
+        
+        .auth-form {
+            padding: 4rem 3rem;
+        }
+        
+        .auth-header {
+            margin-bottom: 2.5rem;
+        }
+        
+        .auth-header h1 {
+            font-family: var(--font-serif);
+            font-size: 2.5rem;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .auth-header p {
+            color: var(--color-charcoal);
+            margin-bottom: 0;
+        }
+        
+        .auth-header p a {
+            color: #f97316;
+            font-weight: 600;
+        }
+        
+        .auth-header p a:hover {
+            text-decoration: underline;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            font-size: 1rem;
+            border: 2px solid var(--color-gray-300);
+            border-radius: 0.75rem;
+            transition: all 0.3s;
+            font-family: var(--font-sans);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #f97316;
+            box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
+        }
+        
+        .form-helper {
+            font-size: 0.75rem;
+            color: var(--color-charcoal);
+            margin-top: 0.5rem;
+        }
+        
+        .btn-submit {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1.125rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+        }
+        
+        .form-footer {
+            margin-top: 2rem;
+            text-align: center;
+            color: var(--color-charcoal);
+            font-size: 0.875rem;
+        }
+        
+        .form-footer a {
+            color: #f97316;
+            font-weight: 600;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9375rem;
+        }
+        
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            animation: shake 0.5s;
+        }
+        
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        @media (max-width: 968px) {
+            .auth-container {
+                grid-template-columns: 1fr;
+                width: 95%;
+            }
+            
+            .auth-visual {
+                padding: 3rem 2rem;
+            }
+            
+            .visual-mascot {
+                font-size: 7rem;
+            }
+            
+            .auth-form {
+                padding: 3rem 2rem;
+            }
+            
+            .auth-header h1 {
+                font-size: 2rem;
+            }
+            
+            .benefits-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <!-- Form Side -->
+        <div class="auth-form">
+            <div class="auth-header">
+                <h1>Create Account</h1>
+                <p>Already have an account? <a href="/login">Sign in</a></p>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="/signup">
+                <div class="form-group">
+                    <label class="form-label" for="name">Full Name</label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name" 
+                        class="form-input" 
+                        placeholder="John Doe"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        class="form-input" 
+                        placeholder="you@example.com"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-input" 
+                        placeholder="••••••••"
+                        required
+                    >
+                    <div class="form-helper">Minimum 6 characters</div>
+                </div>
+                
+                <button type="submit" class="btn-submit">
+                    Create Account →
+                </button>
+            </form>
+            
+            <div class="form-footer">
+                <a href="/">← Back to home</a>
+            </div>
+        </div>
+        
+        <!-- Visual Side -->
+        <div class="auth-visual">
+            <div class="visual-mascot">🦅</div>
+            <div class="visual-content">
+                <h2>Join LinguaVoice Today!</h2>
+                
+                <div class="benefits-grid">
+                    <div class="benefit-badge">
+                        <span class="benefit-icon">✨</span>
+                        <span>100% Free</span>
+                    </div>
+                    <div class="benefit-badge">
+                        <span class="benefit-icon">💳</span>
+                        <span>No Credit Card</span>
+                    </div>
+                    <div class="benefit-badge">
+                        <span class="benefit-icon">🤖</span>
+                        <span>AI Tutor Included</span>
+                    </div>
+                    <div class="benefit-badge">
+                        <span class="benefit-icon">⚡</span>
+                        <span>Instant Start</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

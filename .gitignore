@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+env/
+.env
+
+# Large artifacts / local data
+audio_clips/
+*.db
+*.wav
+
+# Editor
+.vscode/
+.idea/
+
+

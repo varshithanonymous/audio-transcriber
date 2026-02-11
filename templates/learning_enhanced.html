@@ -1,0 +1,579 @@
+{% extends "base_classic.html" %}
+
+{% block title %}Learning Hub - LinguaVoice{% endblock %}
+{% block page_title %}Interactive Learning Hub{% endblock %}
+{% block page_subtitle %}Practice and master your vocabulary with AI-powered exercises{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Learning Modes */
+    .learning-modes {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: var(--space-6);
+        margin-bottom: var(--space-8);
+    }
+    
+    .mode-card {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        color: white;
+        border-radius: var(--radius-xl);
+        padding: var(--space-8);
+        cursor: pointer;
+        transition: all var(--transition-base);
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .mode-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    }
+    
+    .mode-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-xl);
+    }
+    
+    .mode-card:nth-child(2) {
+        background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+    }
+    
+    .mode-card:nth-child(3) {
+        background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%);
+    }
+    
+    .mode-icon {
+        font-size: 4rem;
+        margin-bottom: var(--space-4);
+        position: relative;
+        z-index: 1;
+    }
+    
+    .mode-title {
+        font-family: var(--font-serif);
+        font-size: var(--text-2xl);
+        margin-bottom: var(--space-3);
+        position: relative;
+        z-index: 1;
+    }
+    
+    .mode-description {
+        font-size: var(--text-base);
+        color: rgba(255,255,255,0.9);
+        line-height: 1.6;
+        position: relative;
+        z-index: 1;
+        margin-bottom: var(--space-4);
+    }
+    
+    .mode-stats {
+        display: flex;
+        justify-content: space-between;
+        padding-top: var(--space-4);
+        border-top: 1px solid rgba(255,255,255,0.2);
+        position: relative;
+        z-index: 1;
+    }
+    
+    .mode-stat {
+        text-align: center;
+    }
+    
+    .mode-stat-value {
+        font-size: var(--text-xl);
+        font-weight: 700;
+    }
+    
+    .mode-stat-label {
+        font-size: var(--text-xs);
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Flashcard Container */
+    .flashcard-container {
+        perspective: 1000px;
+        max-width: 600px;
+        margin: var(--space-8) auto;
+    }
+    
+    .flashcard {
+        width: 100%;
+        height: 400px;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.6s;
+        cursor: pointer;
+    }
+    
+    .flashcard.flipped {
+        transform: rotateY(180deg);
+    }
+    
+    .flashcard-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        border-radius: var(--radius-xl);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-8);
+        box-shadow: var(--shadow-xl);
+    }
+    
+    .flashcard-front {
+        background: white;
+        border: 3px solid var(--color-accent);
+    }
+    
+    .flashcard-back {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        color: white;
+        transform: rotateY(180deg);
+    }
+    
+    .flashcard-word {
+        font-family: var(--font-serif);
+        font-size: var(--text-5xl);
+        font-weight: 700;
+        color: var(--color-primary);
+        margin-bottom: var(--space-4);
+    }
+    
+    .flashcard-hint {
+        font-size: var(--text-lg);
+        color: var(--color-charcoal);
+        text-align: center;
+    }
+    
+    .flashcard-meaning {
+        font-size: var(--text-2xl);
+        text-align: center;
+        color: white;
+        margin-bottom: var(--space-4);
+    }
+    
+    .flashcard-example {
+        font-style: italic;
+        text-align: center;
+        color: rgba(255,255,255,0.9);
+        font-size: var(--text-base);
+    }
+    
+    .flashcard-controls {
+        display: flex;
+        justify-content: center;
+        gap: var(--space-4);
+        margin-top: var(--space-6);
+    }
+    
+    .control-btn {
+        padding: var(--space-4) var(--space-8);
+        border: none;
+        border-radius: var(--radius-md);
+        font-size: var(--text-lg);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all var(--transition-base);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+    
+    .btn-know {
+        background: var(--color-success);
+        color: white;
+    }
+    
+    .btn-dont-know {
+        background: var(--color-error);
+        color: white;
+    }
+    
+    .btn-next {
+        background: var(--color-accent);
+        color: var(--color-primary);
+    }
+    
+    .control-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* Progress Bar */
+    .learning-progress {
+        max-width: 600px;
+        margin: 0 auto var(--space-6);
+        background: white;
+        padding: var(--space-6);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: var(--space-4);
+    }
+    
+    .progress-label {
+        font-weight: 600;
+        color: var(--color-primary);
+    }
+    
+    .progress-number {
+        font-family: var(--font-mono);
+        color: var(--color-charcoal);
+    }
+    
+    .progress-track {
+        height: 12px;
+        background: var(--color-parchment);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--color-accent), var(--color-accent-dark));
+        border-radius: var(--radius-md);
+        transition: width 0.5s ease;
+    }
+    
+    /* Quiz Mode */
+    .quiz-question {
+        background: white;
+        border-radius: var(--radius-xl);
+        padding: var(--space-8);
+        margin-bottom: var(--space-6);
+        box-shadow: var(--shadow-lg);
+        max-width: 700px;
+        margin: 0 auto var(--space-6);
+    }
+    
+    .question-text {
+        font-family: var(--font-serif);
+        font-size: var(--text-2xl);
+        color: var(--color-primary);
+        margin-bottom: var(--space-6);
+        text-align: center;
+    }
+    
+    .quiz-options {
+        display: grid;
+        gap: var(--space-4);
+    }
+    
+    .quiz-option {
+        padding: var(--space-4);
+        border: 2px solid var(--color-gray-300);
+        border-radius: var(--radius-md);
+        background: white;
+        cursor: pointer;
+        transition: all var(--transition-base);
+        text-align: center;
+        font-size: var(--text-lg);
+    }
+    
+    .quiz-option:hover {
+        border-color: var(--color-accent);
+        background: var(--color-parchment);
+        transform: translateX(5px);
+    }
+    
+    .quiz-option.correct {
+        border-color: var(--color-success);
+        background: rgba(45, 111, 60, 0.1);
+    }
+    
+    .quiz-option.incorrect {
+        border-color: var(--color-error);
+        background: rgba(139, 58, 66, 0.1);
+    }
+    
+    .session-complete {
+        text-align: center;
+        padding: var(--space-12);
+    }
+    
+    .complete-icon {
+        font-size: 5rem;
+        margin-bottom: var(--space-4);
+    }
+    
+    .complete-title {
+        font-family: var(--font-serif);
+        font-size: var(--text-4xl);
+        color: var(--color-primary);
+        margin-bottom: var(--space-4);
+    }
+    
+    .complete-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-6);
+        max-width: 600px;
+        margin: var(--space-8) auto;
+    }
+    
+    .complete-stat {
+        background: white;
+        padding: var(--space-6);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .complete-stat-value {
+        font-family: var(--font-serif);
+        font-size: var(--text-4xl);
+        font-weight: 700;
+        color: var(--color-accent);
+    }
+    
+    .complete-stat-label {
+        font-size: var(--text-sm);
+        color: var(--color-charcoal);
+        text-transform: uppercase;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="mode-selection">
+    <div class="learning-modes">
+        <div class="mode-card" onclick="startFlashcards()">
+            <div class="mode-icon">🎴</div>
+            <h3 class="mode-title">Flashcards</h3>
+            <p class="mode-description">
+                Review words with interactive flashcards. Perfect for memorization and quick recall practice.
+            </p>
+            <div class="mode-stats">
+                <div class="mode-stat">
+                    <div class="mode-stat-value" id="flashcard-words">0</div>
+                    <div class="mode-stat-label">Words</div>
+                </div>
+                <div class="mode-stat">
+                    <div class="mode-stat-value">~5</div>
+                    <div class="mode-stat-label">Min</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mode-card" onclick="startQuiz()">
+            <div class="mode-icon">❓</div>
+            <h3 class="mode-title">Quiz Mode</h3>
+            <p class="mode-description">
+                Test your knowledge with multiple-choice questions. Track your accuracy and improve!
+            </p>
+            <div class="mode-stats">
+                <div class="mode-stat">
+                    <div class="mode-stat-value">10</div>
+                    <div class="mode-stat-label">Questions</div>
+                </div>
+                <div class="mode-stat">
+                    <div class="mode-stat-value">~8</div>
+                    <div class="mode-stat-label">Min</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mode-card" onclick="startPractice()">
+            <div class="mode-icon">✍️</div>
+            <h3 class="mode-title">Writing Practice</h3>
+            <p class="mode-description">
+                Practice spelling and usage by writing sentences with your vocabulary words.
+            </p>
+            <div class="mode-stats">
+                <div class="mode-stat">
+                    <div class="mode-stat-value">5</div>
+                    <div class="mode-stat-label">Exercises</div>
+                </div>
+                <div class="mode-stat">
+                    <div class="mode-stat-value">~10</div>
+                    <div class="mode-stat-label">Min</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="flashcard-mode" style="display: none;">
+    <div class="learning-progress">
+        <div class="progress-header">
+            <span class="progress-label">Progress</span>
+            <span class="progress-number"><span id="current-card">0</span> / <span id="total-cards">0</span></span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+    </div>
+    
+    <div class="flashcard-container">
+        <div class="flashcard" id="flashcard" onclick="flipCard()">
+            <div class="flashcard-face flashcard-front">
+                <div class="flashcard-word" id="card-word">Loading...</div>
+                <div class="flashcard-hint">Click to reveal meaning</div>
+            </div>
+            <div class="flashcard-face flashcard-back">
+                <div class="flashcard-meaning" id="card-meaning">...</div>
+                <div class="flashcard-example" id="card-example">...</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="flashcard-controls">
+        <button class="control-btn btn-dont-know" onclick="markCard(false)">
+            ❌ Don't Know
+        </button>
+        <button class="control-btn btn-next" onclick="nextCard()">
+            ⏭️ Next
+        </button>
+        <button class="control-btn btn-know" onclick="markCard(true)">
+            ✅ Know It!
+        </button>
+    </div>
+</div>
+
+<div id="quiz-mode" style="display: none;">
+    <!-- Quiz content will be loaded here -->
+</div>
+
+<div id="session-complete" style="display: none;" class="session-complete">
+    <div class="complete-icon">🎉</div>
+    <h2 class="complete-title">Session Complete!</h2>
+    <p style="font-size: var(--text-lg); color: var(--color-charcoal); margin-bottom: var(--space-8);">
+        Great job! You've completed this learning session.
+    </p>
+    
+    <div class="complete-stats">
+        <div class="complete-stat">
+            <div class="complete-stat-value" id="words-reviewed">0</div>
+            <div class="complete-stat-label">Words Reviewed</div>
+        </div>
+        <div class="complete-stat">
+            <div class="complete-stat-value" id="accuracy-rate">0%</div>
+            <div class="complete-stat-label">Accuracy</div>
+        </div>
+        <div class="complete-stat">
+            <div class="complete-stat-value" id="xp-earned">+0</div>
+            <div class="complete-stat-label">XP Earned</div>
+        </div>
+    </div>
+    
+    <div style="display: flex; gap: var(--space-4); justify-content: center; margin-top: var(--space-8);">
+        <button class="btn btn-primary" onclick="location.reload()">
+            🔄 Start New Session
+        </button>
+        <a href="/dashboard" class="btn btn-accent">
+            📊 View Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let vocabularyWords = [];
+let currentCardIndex = 0;
+let knownCards = [];
+let unknownCards = [];
+
+async function loadVocabulary() {
+    const res = await fetch('/api/get_my_spoken_words');
+    vocabularyWords = await res.json();
+    document.getElementById('flashcard-words').textContent = vocabularyWords.length;
+}
+
+function startFlashcards() {
+    if (vocabularyWords.length === 0) {
+        alert('No words in your vocabulary yet! Start transcribing to add words.');
+        return;
+    }
+    
+    document.getElementById('mode-selection').style.display = 'none';
+    document.getElementById('flashcard-mode').style.display = 'block';
+    
+    currentCardIndex = 0;
+    knownCards = [];
+    unknownCards = [];
+    
+    document.getElementById('total-cards').textContent = vocabularyWords.length;
+    showCard();
+}
+
+function showCard() {
+    if (currentCardIndex >= vocabularyWords.length) {
+        completeSession();
+        return;
+    }
+    
+    const word = vocabularyWords[currentCardIndex];
+    const meaning = word.meaning || 'No definition available';
+    const parts = meaning.split('|');
+    
+    document.getElementById('card-word').textContent = word.word;
+    document.getElementById('card-meaning').textContent = parts[0];
+    document.getElementById('card-example').textContent = 
+        parts.find(p => p.includes('Example:')) || 'Practice using this word in a sentence!';
+    
+    document.getElementById('current-card').textContent = currentCardIndex + 1;
+    const progress = ((currentCardIndex + 1) / vocabularyWords.length) * 100;
+    document.getElementById('progress-fill').style.width = progress + '%';
+    
+    // Reset card flip
+    document.getElementById('flashcard').classList.remove('flipped');
+}
+
+function flipCard() {
+    document.getElementById('flashcard').classList.toggle('flipped');
+}
+
+function markCard(known) {
+    if (known) {
+        knownCards.push(vocabularyWords[currentCardIndex]);
+    } else {
+        unknownCards.push(vocabularyWords[currentCardIndex]);
+    }
+    nextCard();
+}
+
+function nextCard() {
+    currentCardIndex++;
+    showCard();
+}
+
+function startQuiz() {
+    alert('Quiz mode coming soon! Complete with multiple-choice questions and instant feedback.');
+}
+
+function startPractice() {
+    alert('Writing practice coming soon! Complete with sentence construction exercises.');
+}
+
+function completeSession() {
+    document.getElementById('flashcard-mode').style.display = 'none';
+    document.getElementById('session-complete').style.display = 'block';
+    
+    const totalWords = vocabularyWords.length;
+    const accuracy = ((knownCards.length / totalWords) * 100).toFixed(0);
+    const xpEarned = knownCards.length * 10;
+    
+    document.getElementById('words-reviewed').textContent = totalWords;
+    document.getElementById('accuracy-rate').textContent = accuracy + '%';
+    document.getElementById('xp-earned').textContent = '+' + xpEarned;
+}
+
+loadVocabulary();
+</script>
+{% endblock %}

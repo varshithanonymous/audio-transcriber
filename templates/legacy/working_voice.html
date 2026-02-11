@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice-to-Text Learning System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+        
+        .voice-controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .mic-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 3rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            margin-bottom: 20px;
+        }
+        
+        .mic-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+        }
+        
+        .mic-button.listening {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .status {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+        
+        .status.listening {
+            color: #ef4444;
+        }
+        
+        .status.ready {
+            color: #22c55e;
+        }
+        
+        .user-input {
+            margin-bottom: 20px;
+        }
+        
+        .user-input input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .user-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .transcript-display {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 100px;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        
+        .transcript-display.has-content {
+            background: #f0f9ff;
+            border-color: #667eea;
+        }
+        
+        .analysis-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .transcripts-history {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .transcript-item {
+            background: #f8fafc;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .transcript-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+        
+        .language-badge {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .success-message {
+            background: #f0fdf4;
+            color: #059669;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #10b981;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+        }
+        
+        .manual-input {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed #e5e7eb;
+        }
+        
+        .manual-input textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .manual-input textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .browser-support {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f59e0b;
+        }
+        
+        @media (max-width: 768px) {
+            .analysis-results {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .mic-button {
+                width: 100px;
+                height: 100px;
+                font-size: 2.5rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 Voice-to-Text Learning</h1>
+            <p>Advanced Speech Recognition with Language Learning</p>
+        </div>
+
+        <!-- Browser Support Notice -->
+        <div class="browser-support">
+            <strong>Note:</strong> For best results, use Chrome or Edge browser. If voice recognition doesn't work, use the manual text input below.
+        </div>
+
+        <!-- Main Voice Interface -->
+        <div class="card">
+            <div class="user-input">
+                <input type="text" id="userId" placeholder="Enter your user ID" value="demo_user">
+            </div>
+            
+            <div class="voice-controls">
+                <button id="micButton" class="mic-button" onclick="toggleRecording()">
+                    🎤
+                </button>
+                <div id="status" class="status ready">Click microphone to start speaking</div>
+            </div>
+            
+            <div id="transcriptDisplay" class="transcript-display">
+                Your speech will appear here...
+            </div>
+            
+            <div id="analysisResults" class="analysis-results" style="display: none;">
+                <div class="stat-card">
+                    <div id="detectedLang" class="stat-number">-</div>
+                    <div class="stat-label">Language</div>
+                </div>
+                <div class="stat-card">
+                    <div id="totalWords" class="stat-number">0</div>
+                    <div class="stat-label">Total Words</div>
+                </div>
+                <div class="stat-card">
+                    <div id="newWords" class="stat-number">0</div>
+                    <div class="stat-label">New Words</div>
+                </div>
+                <div class="stat-card">
+                    <div id="oovWords" class="stat-number">0</div>
+                    <div class="stat-label">Unknown Words</div>
+                </div>
+            </div>
+            
+            <!-- Manual Text Input -->
+            <div class="manual-input">
+                <h4>Manual Text Input (if voice doesn't work):</h4>
+                <textarea id="manualText" placeholder="Type your text here and click 'Process Text' to test the system..."></textarea>
+                <div class="controls" style="margin-top: 10px;">
+                    <button class="btn btn-primary" onclick="processManualText()">Process Text</button>
+                    <button class="btn btn-success" onclick="runDemo()">Run Demo</button>
+                    <button class="btn btn-secondary" onclick="clearAll()">Clear All</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Test Buttons -->
+        <div class="card">
+            <h3>🚀 Quick Test</h3>
+            <p>Test the system with sample phrases:</p>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="testPhrase('Hello how are you today')">Test English</button>
+                <button class="btn btn-primary" onclick="testPhrase('Hola como estas hoy')">Test Spanish</button>
+                <button class="btn btn-primary" onclick="testPhrase('Namaste aap kaise hain')">Test Hindi</button>
+                <button class="btn btn-success" onclick="runDemo()">Run Full Demo</button>
+            </div>
+        </div>
+
+        <!-- Transcription History -->
+        <div class="card">
+            <h3>📝 Recent Transcriptions</h3>
+            <div class="controls" style="margin-bottom: 15px;">
+                <button class="btn btn-secondary" onclick="loadTranscripts()">Refresh History</button>
+            </div>
+            <div id="transcriptsHistory" class="transcripts-history">
+                <div class="loading">Loading transcripts...</div>
+            </div>
+        </div>
+
+        <!-- User Stats -->
+        <div class="card">
+            <h3>📊 Learning Progress</h3>
+            <div id="userStats">
+                <div class="loading">Loading stats...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let recognition;
+        let isRecording = false;
+        let currentUserId = 'demo_user';
+
+        // Initialize speech recognition
+        function initSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                showError('Speech recognition not supported. Please use manual text input or try Chrome/Edge browser.');
+                return false;
+            }
+
+            try {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = function() {
+                    isRecording = true;
+                    updateUI();
+                    updateStatus('Listening... Speak now!', 'listening');
+                };
+
+                recognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    const display = document.getElementById('transcriptDisplay');
+                    display.textContent = finalTranscript || interimTranscript;
+                    display.classList.add('has-content');
+
+                    if (finalTranscript) {
+                        processVoiceInput(finalTranscript);
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    showError('Speech recognition error: ' + event.error + '. Try manual text input.');
+                    isRecording = false;
+                    updateUI();
+                    updateStatus('Ready to listen', 'ready');
+                };
+
+                recognition.onend = function() {
+                    isRecording = false;
+                    updateUI();
+                    updateStatus('Processing...', 'ready');
+                };
+
+                return true;
+            } catch (error) {
+                showError('Failed to initialize speech recognition: ' + error.message);
+                return false;
+            }
+        }
+
+        function toggleRecording() {
+            currentUserId = document.getElementById('userId').value || 'demo_user';
+
+            if (isRecording) {
+                if (recognition) {
+                    recognition.stop();
+                }
+                return;
+            }
+
+            if (!recognition && !initSpeechRecognition()) {
+                showError('Speech recognition not available. Please use manual text input.');
+                return;
+            }
+
+            try {
+                recognition.start();
+            } catch (error) {
+                showError('Failed to start recording: ' + error.message);
+            }
+        }
+
+        function updateUI() {
+            const button = document.getElementById('micButton');
+            if (isRecording) {
+                button.classList.add('listening');
+                button.textContent = '🛑';
+            } else {
+                button.classList.remove('listening');
+                button.textContent = '🎤';
+            }
+        }
+
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        async function processVoiceInput(text) {
+            try {
+                const response = await fetch('/process_voice', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: currentUserId,
+                        text: text
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    displayAnalysisResults(result);
+                    showSuccess(result.message);
+                    loadTranscripts();
+                    updateStatus('Ready to listen', 'ready');
+                } else {
+                    showError(result.error || 'Processing failed');
+                    updateStatus('Ready to listen', 'ready');
+                }
+
+            } catch (error) {
+                console.error('Error processing voice:', error);
+                showError('Failed to process voice input');
+                updateStatus('Ready to listen', 'ready');
+            }
+        }
+
+        function processManualText() {
+            const text = document.getElementById('manualText').value.trim();
+            if (!text) {
+                showError('Please enter some text to process');
+                return;
+            }
+
+            document.getElementById('transcriptDisplay').textContent = text;
+            document.getElementById('transcriptDisplay').classList.add('has-content');
+            
+            processVoiceInput(text);
+            document.getElementById('manualText').value = '';
+        }
+
+        function testPhrase(phrase) {
+            document.getElementById('transcriptDisplay').textContent = phrase;
+            document.getElementById('transcriptDisplay').classList.add('has-content');
+            processVoiceInput(phrase);
+        }
+
+        async function runDemo() {
+            try {
+                currentUserId = document.getElementById('userId').value || 'demo_user';
+                
+                const response = await fetch('/demo_voice', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: currentUserId
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showSuccess(result.message);
+                    loadTranscripts();
+                    loadUserStats();
+                } else {
+                    showError('Demo failed');
+                }
+
+            } catch (error) {
+                showError('Failed to run demo: ' + error.message);
+            }
+        }
+
+        function displayAnalysisResults(result) {
+            document.getElementById('detectedLang').textContent = result.detected_language.toUpperCase();
+            document.getElementById('totalWords').textContent = result.total_words;
+            document.getElementById('newWords').textContent = result.new_word_count;
+            document.getElementById('oovWords').textContent = result.oov_words.length;
+            
+            document.getElementById('analysisResults').style.display = 'grid';
+        }
+
+        async function loadTranscripts() {
+            try {
+                const response = await fetch(`/get_transcripts?user_id=${currentUserId}&limit=10`);
+                const transcripts = await response.json();
+
+                const container = document.getElementById('transcriptsHistory');
+                
+                if (transcripts.length === 0) {
+                    container.innerHTML = '<div class="loading">No transcripts yet. Try speaking or use manual input!</div>';
+                    return;
+                }
+
+                container.innerHTML = transcripts.map(t => `
+                    <div class="transcript-item">
+                        <div class="transcript-meta">
+                            <span>${t.timestamp}</span>
+                            <span class="language-badge">${t.language.toUpperCase()}</span>
+                        </div>
+                        <div>${t.text}</div>
+                        <div style="margin-top: 8px; font-size: 0.8rem; color: #6b7280;">
+                            New words: ${t.new_words} | Unknown: ${t.oov_words}
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading transcripts:', error);
+                document.getElementById('transcriptsHistory').innerHTML = '<div class="loading">Error loading transcripts</div>';
+            }
+        }
+
+        async function loadUserStats() {
+            try {
+                const response = await fetch(`/user_stats/${currentUserId}`);
+                const stats = await response.json();
+
+                const container = document.getElementById('userStats');
+                
+                if (Object.keys(stats).length === 0) {
+                    container.innerHTML = '<div class="loading">No learning data yet. Start speaking to build your profile!</div>';
+                    return;
+                }
+
+                let statsHtml = '<div class="analysis-results">';
+                
+                for (const [lang, data] of Object.entries(stats)) {
+                    if (data.xp !== undefined) {
+                        statsHtml += `
+                            <div class="stat-card">
+                                <div class="stat-number">${lang.toUpperCase()}</div>
+                                <div class="stat-label">Language</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${data.xp || 0}</div>
+                                <div class="stat-label">XP Points</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${data.level || 'Beginner'}</div>
+                                <div class="stat-label">Level</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${data.streak || 0}</div>
+                                <div class="stat-label">Streak Days</div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                statsHtml += '</div>';
+                container.innerHTML = statsHtml;
+
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                document.getElementById('userStats').innerHTML = '<div class="loading">Error loading stats</div>';
+            }
+        }
+
+        function clearAll() {
+            document.getElementById('transcriptDisplay').textContent = 'Your speech will appear here...';
+            document.getElementById('transcriptDisplay').classList.remove('has-content');
+            document.getElementById('analysisResults').style.display = 'none';
+            document.getElementById('manualText').value = '';
+        }
+
+        function showError(message) {
+            showMessage(message, 'error');
+        }
+
+        function showSuccess(message) {
+            showMessage(message, 'success');
+        }
+
+        function showMessage(message, type) {
+            const existing = document.querySelector('.error-message, .success-message');
+            if (existing) existing.remove();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            messageDiv.textContent = message;
+
+            const container = document.querySelector('.container');
+            container.insertBefore(messageDiv, container.firstChild);
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTranscripts();
+            loadUserStats();
+            
+            document.getElementById('userId').addEventListener('change', function() {
+                currentUserId = this.value || 'demo_user';
+                loadTranscripts();
+                loadUserStats();
+            });
+
+            // Check browser support
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                showError('Voice recognition not supported in this browser. Please use Chrome, Edge, or manual text input.');
+            }
+        });
+
+        // Auto-refresh transcripts every 30 seconds
+        setInterval(loadTranscripts, 30000);
+    </script>
+</body>
+</html>

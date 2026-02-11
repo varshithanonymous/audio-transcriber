@@ -1,0 +1,325 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Learning Hub - LinguaVoice{% endblock %}
+{% block page_title %}Learning Hub ✨{% endblock %}
+{% block page_subtitle %}Practice with flashcards, quizzes, and interactive exercises{% endblock %}
+
+{% block extra_css %}
+<style>
+    .mode-selector {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    
+    .mode-btn {
+        flex: 1;
+        min-width: 150px;
+        padding: 1rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+    
+    .mode-btn:hover {
+        border-color: #3b82f6;
+        transform: translateY(-2px);
+    }
+    
+    .mode-btn.active {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+    }
+    
+    .mode-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mode-name {
+        font-weight: 600;
+    }
+    
+    .flashcard-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .flashcard {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 4rem 3rem;
+        border: 1px solid #e5e7eb;
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+    }
+    
+    .flashcard:hover {
+        transform: scale(1.02);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+    }
+    
+    .flashcard-word {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 1rem;
+    }
+    
+    .flashcard-meaning {
+        font-size: 1.25rem;
+        color: #4b5563;
+        text-align: center;
+        line-height: 1.6;
+    }
+    
+    .flip-hint {
+        position: absolute;
+        bottom: 1.5rem;
+        font-size: 0.875rem;
+        color: #9ca3af;
+    }
+    
+    .card-controls {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .control-btn {
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-again {
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+    }
+    
+    .btn-hard {
+        background: #fef3c7;
+        color: #d97706;
+        border: 1px solid #fde68a;
+    }
+    
+    .btn-good {
+        background: #dbeafe;
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
+    }
+    
+    .btn-easy {
+        background: #dcfce7;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+    }
+    
+    .control-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .progress-indicator {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: #6b7280;
+        font-size: 0.9375rem;
+    }
+    
+    .quiz-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .question-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 1.5rem;
+    }
+    
+    .question-text {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+    }
+    
+    .answer-option {
+        padding: 1rem 1.5rem;
+        background: #f9fafb;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.75rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .answer-option:hover {
+        background: #eff6ff;
+        border-color: #3b82f6;
+    }
+    
+    .answer-option.selected {
+        background: #dbeafe;
+        border-color: #3b82f6;
+    }
+    
+    .answer-option.correct {
+        background: #dcfce7;
+        border-color: #16a34a;
+    }
+    
+    .answer-option.incorrect {
+        background: #fef2f2;
+        border-color: #dc2626;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Mode Selector -->
+<div class="mode-selector">
+    <div class="mode-btn active" onclick="switchMode('flashcards')">
+        <div class="mode-icon">🃏</div>
+        <div class="mode-name">Flashcards</div>
+    </div>
+    <div class="mode-btn" onclick="switchMode('quiz')">
+        <div class="mode-icon">❓</div>
+        <div class="mode-name">Quiz</div>
+    </div>
+    <div class="mode-btn" onclick="switchMode('practice')">
+        <div class="mode-icon">✍️</div>
+        <div class="mode-name">Practice</div>
+    </div>
+</div>
+
+<!-- Flashcard Mode -->
+<div id="flashcards-mode" class="learning-mode">
+    <div class="progress-indicator">
+        Card <span id="card-num">1</span> of <span id="total-cards">10</span>
+    </div>
+    
+    <div class="flashcard-container">
+        <div class="flashcard" id="flashcard" onclick="flipCard()">
+            <div id="card-front">
+                <div class="flashcard-word" id="word-display">hello</div>
+            </div>
+            <div id="card-back" style="display: none;">
+                <div class="flashcard-meaning" id="meaning-display">a greeting</div>
+            </div>
+            <div class="flip-hint">Click to flip</div>
+        </div>
+        
+        <div class="card-controls">
+            <button class="control-btn btn-again" onclick="rateCard(1)">Again</button>
+            <button class="control-btn btn-hard" onclick="rateCard(2)">Hard</button>
+            <button class="control-btn btn-good" onclick="rateCard(3)">Good</button>
+            <button class="control-btn btn-easy" onclick="rateCard(4)">Easy</button>
+        </div>
+    </div>
+</div>
+
+<!-- Quiz Mode -->
+<div id="quiz-mode" class="learning-mode" style="display: none;">
+    <div class="progress-indicator">
+        Question <span id="question-num">1</span> of <span id="total-questions">5</span>
+    </div>
+    
+    <div class="quiz-container" id="quiz-container">
+        <!-- Populated by JS -->
+    </div>
+</div>
+
+<!-- Practice Mode -->
+<div id="practice-mode" class="learning-mode" style="display: none;">
+    <div style="text-align: center; padding: 4rem; color: #6b7280;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">✍️</div>
+        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #1e293b;">Practice Mode</h3>
+        <p>Type what you hear and improve your spelling</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let vocabulary = [];
+    let currentCardIndex = 0;
+    let isFlipped = false;
+    
+    async function loadVocabulary() {
+        try {
+            const res = await fetch('/api/get_my_spoken_words');
+            vocabulary = await res.json();
+            document.getElementById('total-cards').textContent = vocabulary.length;
+            showCard(0);
+        } catch (error) {
+            console.error('Error loading vocabulary:', error);
+        }
+    }
+    
+    function switchMode(mode) {
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        
+        document.querySelectorAll('.learning-mode').forEach(m => m.style.display = 'none');
+        document.getElementById(mode + '-mode').style.display = 'block';
+    }
+    
+    function showCard(index) {
+        if (!vocabulary.length) return;
+        
+        currentCardIndex = index;
+        const word = vocabulary[index];
+        
+        document.getElementById('card-num').textContent = index + 1;
+        document.getElementById('word-display').textContent = word.word || 'No word';
+        document.getElementById('meaning-display').textContent = word.meaning || 'No meaning';
+        
+        // Reset flip state
+        document.getElementById('card-front').style.display = 'block';
+        document.getElementById('card-back').style.display = 'none';
+        isFlipped = false;
+    }
+    
+    function flipCard() {
+        const front = document.getElementById('card-front');
+        const back = document.getElementById('card-back');
+        
+        if (isFlipped) {
+            front.style.display = 'block';
+            back.style.display = 'none';
+        } else {
+            front.style.display = 'none';
+            back.style.display = 'block';
+        }
+        isFlipped = !isFlipped;
+    }
+    
+    function rateCard(rating) {
+        // Move to next card
+        const nextIndex = (currentCardIndex + 1) % vocabulary.length;
+        showCard(nextIndex);
+    }
+    
+    loadVocabulary();
+</script>
+{% endblock %}

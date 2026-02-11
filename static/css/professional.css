@@ -1,0 +1,221 @@
+/* ========================================
+   SERP HAWK HIGH-FIDELITY THEME
+   Premium Interactive Interface
+   ======================================== */
+
+:root {
+    /* Brand Palette - Deep & Vibrant */
+    --color-primary: #0F172A;      
+    --color-primary-rgb: 15, 23, 42;
+    --color-accent: #10B981;       /* Emerald */
+    --color-accent-glow: #34D399;
+    --color-surface: #FFFFFF;
+    
+    /* Gradients */
+    --grad-aurora: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                   radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                   radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+                   
+    --grad-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+    
+    /* Typography */
+    --font-display: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+}
+
+/* Base Setup */
+body {
+    background: #F1F5F9;
+    background-image: 
+        radial-gradient(at 80% 0%, hsla(189,100%,56%,0.1) 0px, transparent 50%),
+        radial-gradient(at 0% 50%, hsla(341,100%,56%,0.1) 0px, transparent 50%),
+        radial-gradient(at 80% 50%, hsla(260,100%,56%,0.1) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, hsla(22,100%,56%,0.1) 0px, transparent 50%);
+    background-attachment: fixed;
+    font-family: var(--font-body);
+    color: var(--color-primary);
+    line-height: 1.6;
+}
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; }
+
+/* ========== COMPONENT: INTERACTIVE MASCOT ========== */
+.mascot-wrapper {
+    position: relative;
+    display: inline-block;
+    perspective: 1000px; /* For 3D head turning */
+}
+
+.hawk-mascot-interactive {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 4px solid rgba(255,255,255,0.8);
+    box-shadow: 
+        0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+        0 10px 10px -5px rgba(0, 0, 0, 0.04),
+        0 0 0 8px rgba(16, 185, 129, 0.1); /* Subtle aura */
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: white; /* Fallback */
+    object-fit: cover;
+    z-index: 10;
+    position: relative;
+}
+
+.breathing {
+    animation: breathe 4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+    0%, 100% { transform: scale(1) translateY(0); }
+    50% { transform: scale(1.03) translateY(-5px); }
+}
+
+/* Speech Bubble */
+.bubble-modern {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 1rem 1.5rem;
+    border-radius: 1.5rem;
+    border-bottom-left-radius: 0.2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
+    color: var(--color-primary);
+    position: absolute;
+    top: -60px;
+    right: -140px;
+    width: 200px;
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation-delay: 0.5s;
+    border: 1px solid rgba(255,255,255,0.5);
+}
+
+@keyframes popIn {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ========== COMPONENT: GLASS CARDS ========== */
+.glass-card {
+    background: var(--grad-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 1.5rem;
+    box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.05), /* Soft shadow */
+        0 0 0 1px rgba(255, 255, 255, 0.3) inset; /* Inner highlight */
+    transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+        0 20px 25px -5px rgba(0, 0, 0, 0.1),
+        0 0 0 2px var(--color-accent) inset; /* Active border */
+}
+
+/* ========== LAYOUTS ========== */
+.container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    padding: 0 2rem; 
+}
+
+/* Navbar */
+.navbar-premium {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 72px;
+    display: flex;
+    align-items: center;
+}
+
+.nav-link-premium {
+    font-weight: 600;
+    color: #64748B;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.nav-link-premium:hover, .nav-link-premium.active {
+    color: var(--color-primary);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+/* Dashboard Grid */
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+    padding-top: 2rem;
+}
+
+/* Analytics Cards */
+.stats-grid-premium {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-value-large {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Buttons */
+.btn-glow {
+    background: var(--color-primary);
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    border: none;
+    box-shadow: 0 4px 14px 0 rgba(15, 23, 42, 0.39);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-glow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.23);
+    background: black;
+}
+
+/* Form Inputs */
+.input-premium {
+    background: rgba(255,255,255,0.7);
+    border: 2px solid transparent;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    width: 100%;
+    font-size: 1rem;
+    transition: all 0.2s;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.input-premium:focus {
+    outline: none;
+    background: white;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+/* Footer */
+footer {
+    background: white;
+    margin-top: 4rem;
+    padding: 4rem 0;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    color: #64748B;
+}

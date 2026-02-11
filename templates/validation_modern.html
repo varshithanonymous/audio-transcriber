@@ -1,0 +1,428 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Validation - LinguaVoice{% endblock %}
+{% block page_title %}Word Validation ✅{% endblock %}
+{% block page_subtitle %}Validate and manage your vocabulary entries{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-bar {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .subsection-tabs {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .subsection-tab {
+        padding: 0.75rem 1.5rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.75rem;
+        color: #4b5563;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .subsection-tab:hover {
+        border-color: #3b82f6;
+    }
+    
+    .subsection-tab.active {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+    }
+    
+    .filter-select {
+        padding: 0.625rem 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        font-size: 0.9375rem;
+        cursor: pointer;
+    }
+    
+    .filter-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .validation-section {
+        background: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid #e5e7eb;
+        display: none;
+    }
+    
+    .validation-section.active {
+        display: block;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .section-header.valid {
+        color: #10b981;
+        border-bottom-color: #10b981;
+    }
+    
+    .section-header.invalid {
+        color: #ef4444;
+        border-bottom-color: #ef4444;
+    }
+    
+    .count-badge {
+        background: #f3f4f6;
+        color: #6b7280;
+        padding: 0.5rem 1rem;
+        border-radius: 1rem;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+    
+    .words-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+    }
+    
+    .word-card {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        border: 2px solid #e5e7eb;
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+    }
+    
+    .word-card.valid {
+        border-color: #bbf7d0;
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    }
+    
+    .word-card.valid:hover {
+        border-color: #10b981;
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+        transform: translateY(-3px);
+    }
+    
+    .word-card.invalid {
+        border-color: #fecaca;
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    }
+    
+    .word-card.invalid:hover {
+        border-color: #ef4444;
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.25);
+        transform: translateY(-3px);
+    }
+    
+    .word-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+    
+    .word-title {
+        font-weight: 800;
+        color: #1e293b;
+        font-size: 1.25rem;
+    }
+    
+    .word-lang {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #6b7280;
+        background: white;
+        padding: 0.25rem 0.625rem;
+        border-radius: 0.375rem;
+        font-weight: 700;
+    }
+    
+    .word-meaning {
+        font-size: 0.9375rem;
+        color: #4b5563;
+        line-height: 1.7;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(0,0,0,0.1);
+        display: none;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    
+    .word-card.show-meaning .word-meaning {
+        display: block;
+    }
+    
+    .click-hint {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        font-style: italic;
+        margin-top: 0.5rem;
+    }
+    
+    .action-btn {
+        padding: 0.75rem 1.25rem;
+        background: white;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 1rem;
+        width: 100%;
+    }
+    
+    .action-btn.btn-validate {
+        background: #10b981;
+        color: white;
+    }
+    
+    .action-btn.btn-validate:hover {
+        background: #059669;
+        transform: scale(1.02);
+    }
+    
+    .action-btn.btn-remove {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .action-btn.btn-remove:hover {
+        background: #dc2626;
+        transform: scale(1.02);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 1rem;
+        color: #9ca3af;
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .words-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .subsection-tabs {
+            width: 100%;
+            flex-direction: column;
+        }
+        
+        .subsection-tab {
+            width: 100%;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <div class="subsection-tabs">
+        <button class="subsection-tab active" onclick="switchSubsection('validated')" id="tab-validated">
+            Validated Words
+        </button>
+        <button class="subsection-tab" onclick="switchSubsection('pending')" id="tab-pending">
+            Pending Validation
+        </button>
+    </div>
+    
+    <select id="validation-lang-filter" class="filter-select" onchange="renderValidation()">
+        <option value="all">All Languages</option>
+        <option value="en">English</option>
+        <option value="es">Spanish</option>
+        <option value="hi">Hindi</option>
+    </select>
+</div>
+
+<!-- Validated Section -->
+<div class="validation-section active" id="section-validated">
+    <div class="section-header valid">
+        <span>Validated Words</span>
+        <span class="count-badge" id="count-valid">0</span>
+    </div>
+    <div class="words-grid" id="valid-list">
+        <div class="empty-state">
+            <div class="empty-icon">✅</div>
+            <p>No validated words yet</p>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Section -->
+<div class="validation-section" id="section-pending">
+    <div class="section-header invalid">
+        <span>Pending Validation</span>
+        <span class="count-badge" id="count-invalid">0</span>
+    </div>
+    <div class="words-grid" id="invalid-list">
+        <div class="empty-state">
+            <div class="empty-icon">⏳</div>
+            <p>No pending words</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let myVocab = [];
+    let currentSubsection = 'validated';
+    
+    async function loadVocabulary() {
+        try {
+            const res = await fetch('/api/get_vocabulary_bank_full');
+            myVocab = await res.json();
+            console.log('Loaded vocabulary:', myVocab);
+            renderValidation();
+        } catch (e) {
+            console.error('Error loading vocabulary:', e);
+        }
+    }
+    
+    function switchSubsection(subsection) {
+        currentSubsection = subsection;
+        
+        // Update tab buttons
+        document.querySelectorAll('.subsection-tab').forEach(tab => tab.classList.remove('active'));
+        document.getElementById('tab-' + subsection).classList.add('active');
+        
+        // Update sections
+        document.querySelectorAll('.validation-section').forEach(section => section.classList.remove('active'));
+        document.getElementById('section-' + subsection).classList.add('active');
+    }
+    
+    function toggleMeaning(cardId) {
+        const card = document.getElementById(cardId);
+        card.classList.toggle('show-meaning');
+    }
+    
+    function renderValidation() {
+        const langFilter = document.getElementById('validation-lang-filter').value;
+        let filtered = myVocab;
+        
+        if (langFilter !== 'all') {
+            filtered = myVocab.filter(w => w.language === langFilter);
+        }
+        
+        const valid = filtered.filter(w => w.is_valid);
+        const invalid = filtered.filter(w => !w.is_valid);
+        
+        // Update counts
+        document.getElementById('count-valid').textContent = valid.length;
+        document.getElementById('count-invalid').textContent = invalid.length;
+        
+        // Render validated words
+        const validList = document.getElementById('valid-list');
+        if (valid.length === 0) {
+            validList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">✅</div>
+                    <p>No validated words yet</p>
+                </div>
+            `;
+        } else {
+            validList.innerHTML = valid.map((w, idx) => {
+                const meaning = formatMeaning(w.meaning);
+                console.log('Word:', w.word, 'Meaning:', meaning, 'Raw:', w.meaning);
+                return `
+                    <div class="word-card valid" id="valid-${idx}" onclick="toggleMeaning('valid-${idx}')">
+                        <div class="word-header">
+                            <div class="word-title">${w.word}</div>
+                            <span class="word-lang">${w.language}</span>
+                        </div>
+                        <div class="click-hint">Click to see meaning</div>
+                        <div class="word-meaning">${meaning}</div>
+                        <button class="action-btn btn-remove" onclick="event.stopPropagation(); toggleValidation('${escapeQuotes(w.word)}', '${w.language}', false)">
+                            Remove
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Render pending words
+        const invalidList = document.getElementById('invalid-list');
+        if (invalid.length === 0) {
+            invalidList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <p>No pending words</p>
+                </div>
+            `;
+        } else {
+            invalidList.innerHTML = invalid.map((w, idx) => {
+                const meaning = formatMeaning(w.meaning);
+                console.log('Word:', w.word, 'Meaning:', meaning, 'Raw:', w.meaning);
+                return `
+                    <div class="word-card invalid" id="invalid-${idx}" onclick="toggleMeaning('invalid-${idx}')">
+                        <div class="word-header">
+                            <div class="word-title">${w.word}</div>
+                            <span class="word-lang">${w.language}</span>
+                        </div>
+                        <div class="click-hint">Click to see meaning</div>
+                        <div class="word-meaning">${meaning}</div>
+                        <button class="action-btn btn-validate" onclick="event.stopPropagation(); toggleValidation('${escapeQuotes(w.word)}', '${w.language}', true)">
+                            Validate
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+    
+    async function toggleValidation(word, lang, validate) {
+        try {
+            await fetch(`/api/validate_word_manual?word=${encodeURIComponent(word)}&lang=${lang}`);
+            await loadVocabulary();
+        } catch (e) {
+            console.error('Error toggling validation:', e);
+        }
+    }
+    
+    function formatMeaning(m) {
+        if (!m) return 'No definition available';
+        if (typeof m !== 'string') m = String(m);
+        
+        // Split by pipe and take first part
+        const parts = m.split('|');
+        const firstPart = parts[0].trim();
+        
+        return firstPart || 'No definition available';
+    }
+    
+    function escapeQuotes(str) {
+        return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+    
+    // Load data on page load
+    loadVocabulary();
+</script>
+{% endblock %}

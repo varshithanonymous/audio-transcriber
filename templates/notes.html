@@ -1,0 +1,339 @@
+{% extends "base_sidebar.html" if not is_public else "base.html" %}
+
+{% block title %}Voice Notes - LinguaVoice{% endblock %}
+{% block page_title %}{% if is_public %}Try Voice Notes ✨{% else %}Voice Notes 📝{% endif %}{% endblock %}
+{% block page_subtitle %}Record your thoughts, translate them, and stay organized.{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notes-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding-bottom: 4rem;
+    }
+
+    .record-card {
+        background: white;
+        border-radius: 2rem;
+        padding: 2.5rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        text-align: center;
+        margin-bottom: 2rem;
+        border: 2px solid #f1f5f9;
+    }
+
+    .record-btn {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        font-size: 2.5rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+
+    .record-btn:active {
+        transform: scale(0.9);
+    }
+
+    .record-btn.recording {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.1);
+        animation: pulse-red 1.5s infinite;
+    }
+
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .status-text {
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    .transcription-area {
+        margin-top: 2rem;
+        text-align: left;
+    }
+
+    .note-box {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        min-height: 151px;
+        font-size: 1.25rem;
+        color: var(--navy-900);
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
+
+    .note-box:empty::before {
+        content: "Your spoken notes will appear here...";
+        color: #94a3b8;
+        font-style: italic;
+    }
+
+    .action-row {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .note-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 1rem;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .btn-translate { background: var(--navy-800); color: white; }
+    .btn-download { background: #10b981; color: white; }
+    .btn-clear { background: #f1f5f9; color: var(--navy-700); }
+
+    .note-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+    .note-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Translation Panel */
+    .translation-panel {
+        display: none;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .translation-header {
+        font-weight: 800;
+        color: #166534;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .explanation-box {
+        margin-top: 1rem;
+        font-size: 0.95rem;
+        color: #15803d;
+        font-style: italic;
+        padding-top: 1rem;
+        border-top: 1px solid #dcfce7;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notes-container">
+    
+    <div class="record-card">
+        <div class="status-text" id="record-status">Tap to start recording</div>
+        <button class="record-btn" id="record-btn" onclick="toggleRecording()">
+            <span id="record-icon">🎤</span>
+        </button>
+        
+        <div class="transcription-area">
+            <label style="display: block; font-weight: 700; color: var(--navy-800); margin-bottom: 0.5rem;">Draft Note</label>
+            <div class="note-box" id="note-display" contenteditable="true"></div>
+            
+            <div class="action-row">
+                <button class="note-btn btn-translate" id="translate-btn" onclick="translateNote()" disabled>
+                    🌐 Translate to English
+                </button>
+                <button class="note-btn btn-download" id="download-btn" onclick="downloadNote()" disabled>
+                    📥 Download .txt
+                </button>
+                <button class="note-btn btn-clear" onclick="clearNote()">
+                    🗑️ Clear
+                </button>
+            </div>
+        </div>
+
+        <div class="translation-panel" id="translation-panel">
+            <div class="translation-header">✨ English Translation</div>
+            <div id="translation-result" style="font-size: 1.15rem; color: #166534; line-height: 1.6;"></div>
+            <div class="explanation-box" id="translation-explanation"></div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let recognition = null;
+    let isRecording = false;
+    const TARGET_LANG = "{{ target_language }}";
+
+    function initSpeech() {
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = getLangCode(TARGET_LANG);
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    }
+                }
+                if (finalTranscript) {
+                    const display = document.getElementById('note-display');
+                    display.innerText += (display.innerText ? ' ' : '') + finalTranscript;
+                    updateButtons();
+                }
+            };
+
+            recognition.onend = () => {
+                if (isRecording) {
+                    recognition.start(); // Keep listening if we didn't manually stop
+                } else {
+                    stopRecordingUI();
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech error", event.error);
+                stopRecording();
+            };
+        }
+    }
+
+    function toggleRecording() {
+        if (!recognition) initSpeech();
+        if (!recognition) { alert("Speech recognition not supported"); return; }
+
+        if (isRecording) {
+            stopRecording();
+        } else {
+            startRecording();
+        }
+    }
+
+    function startRecording() {
+        isRecording = true;
+        recognition.start();
+        document.getElementById('record-btn').classList.add('recording');
+        document.getElementById('record-icon').textContent = '⏹️';
+        document.getElementById('record-status').textContent = 'Recording... Tap to stop';
+    }
+
+    function stopRecording() {
+        isRecording = false;
+        recognition.stop();
+        stopRecordingUI();
+    }
+
+    function stopRecordingUI() {
+        document.getElementById('record-btn').classList.remove('recording');
+        document.getElementById('record-icon').textContent = '🎤';
+        document.getElementById('record-status').textContent = 'Tap to start recording';
+        updateButtons();
+    }
+
+    function updateButtons() {
+        const text = document.getElementById('note-display').innerText.trim();
+        const hasText = text.length > 0;
+        document.getElementById('translate-btn').disabled = !hasText;
+        document.getElementById('download-btn').disabled = !hasText;
+    }
+
+    async function translateNote() {
+        const text = document.getElementById('note-display').innerText.trim();
+        if (!text) return;
+
+        const btn = document.getElementById('translate-btn');
+        btn.disabled = true;
+        btn.textContent = '⌛ Translating...';
+
+        try {
+            const response = await fetch('/api/notes/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text, lang: TARGET_LANG })
+            });
+            const data = await response.json();
+
+            if (data.translation) {
+                document.getElementById('translation-panel').style.display = 'block';
+                document.getElementById('translation-result').innerText = data.translation;
+                document.getElementById('translation-explanation').innerText = data.explanation || '';
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Failed to translate note.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '🌐 Translate to English';
+        }
+    }
+
+    function downloadNote() {
+        const text = document.getElementById('note-display').innerText.trim();
+        const translation = document.getElementById('translation-result').innerText.trim();
+        const explanation = document.getElementById('translation-explanation').innerText.trim();
+
+        if (!text) return;
+
+        let content = `LINGUAVOICE NOTES\n================\n\nORIGINAL (${TARGET_LANG.toUpperCase()}):\n${text}\n\n`;
+        if (translation) {
+            content += `ENGLISH TRANSLATION:\n${translation}\n\n`;
+        }
+        if (explanation) {
+            content += `EXPLANATION:\n${explanation}\n\n`;
+        }
+        
+        content += `Generated on: ${new Date().toLocaleString()}`;
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `LinguaVoice_Note_${new Date().getTime()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    }
+
+    function clearNote() {
+        if (confirm("Clear this note?")) {
+            document.getElementById('note-display').innerText = '';
+            document.getElementById('translation-panel').style.display = 'none';
+            updateButtons();
+        }
+    }
+
+    function getLangCode(lang) {
+        const codes = { 'en': 'en-US', 'es': 'es-ES', 'hi': 'hi-IN', 'fr': 'fr-FR', 'de': 'de-DE' };
+        return codes[lang] || 'en-US';
+    }
+
+    document.getElementById('note-display').oninput = updateButtons;
+</script>
+{% endblock %}

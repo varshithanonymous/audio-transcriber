@@ -1,0 +1,387 @@
+/* Neon Stat Cards */
+.stat-card {
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    transition: var(--transition);
+    min-height: 150px;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: var(--neon-gradient-1);
+    border-radius: var(--radius-lg);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.stat-card:hover::before {
+    opacity: 1;
+    animation: border-glow 2s ease infinite;
+}
+
+@keyframes border-glow {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.stat-card-cyan {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.2) 0%, rgba(0, 212, 255, 0.1) 100%);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+}
+
+.stat-card-cyan:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: var(--glow-cyan);
+    border-color: var(--neon-cyan);
+}
+
+.stat-card-magenta {
+    background: linear-gradient(135deg, rgba(255, 0, 255, 0.2) 0%, rgba(255, 0, 110, 0.1) 100%);
+    border: 1px solid rgba(255, 0, 255, 0.4);
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
+}
+
+.stat-card-magenta:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: var(--glow-magenta);
+    border-color: var(--neon-magenta);
+}
+
+.stat-card-lime {
+    background: linear-gradient(135deg, rgba(57, 255, 20, 0.2) 0%, rgba(0, 240, 255, 0.1) 100%);
+    border: 1px solid rgba(57, 255, 20, 0.4);
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.2);
+}
+
+.stat-card-lime:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: var(--glow-lime);
+    border-color: var(--neon-lime);
+}
+
+.stat-card-purple {
+    background: linear-gradient(135deg, rgba(176, 38, 255, 0.2) 0%, rgba(255, 0, 255, 0.1) 100%);
+    border: 1px solid rgba(176, 38, 255, 0.4);
+    box-shadow: 0 0 20px rgba(176, 38, 255, 0.2);
+}
+
+.stat-card-purple:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: var(--glow-purple);
+    border-color: var(--neon-purple);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: var(--neon-gradient-1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 30px rgba(0, 240, 255, 0.5);
+    animation: value-pulse 3s ease-in-out infinite;
+}
+
+@keyframes value-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.stat-card-cyan .stat-value {
+    background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-blue) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stat-card-magenta .stat-value {
+    background: linear-gradient(135deg, var(--neon-magenta) 0%, var(--neon-pink) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stat-card-lime .stat-value {
+    background: linear-gradient(135deg, var(--neon-lime) 0%, var(--neon-cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stat-card-purple .stat-value {
+    background: linear-gradient(135deg, var(--neon-purple) 0%, var(--neon-magenta) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Icon Container with Glow */
+.icon-container {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    opacity: 0.3;
+    transition: var(--transition);
+}
+
+.stat-card:hover .icon-container {
+    opacity: 0.6;
+    transform: scale(1.2) rotate(10deg);
+    filter: drop-shadow(0 0 10px currentColor);
+    animation: icon-float 2s ease-in-out infinite;
+}
+
+@keyframes icon-float {
+
+    0%,
+    100% {
+        transform: translateY(0) scale(1.2) rotate(10deg);
+    }
+
+    50% {
+        transform: translateY(-10px) scale(1.3) rotate(15deg);
+    }
+}
+
+.stat-card-cyan .icon-container svg {
+    stroke: var(--neon-cyan);
+}
+
+.stat-card-magenta .icon-container svg {
+    stroke: var(--neon-magenta);
+}
+
+.stat-card-lime .icon-container svg {
+    stroke: var(--neon-lime);
+}
+
+.stat-card-purple .icon-container svg {
+    stroke: var(--neon-purple);
+}
+
+/* Progress Bar with Neon Glow */
+.progress-bar {
+    height: 10px;
+    background: rgba(0, 240, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--neon-gradient-1);
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent);
+    animation: progress-shine 2s ease infinite;
+}
+
+@keyframes progress-shine {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Microphone Button */
+.mic-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #4A90E2;
+    border: 3px solid rgba(74, 144, 226, 0.5);
+    color: white;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mic-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(74, 144, 226, 0.5);
+}
+
+.mic-btn.listening {
+    animation: mic-pulse 1.5s ease-in-out infinite;
+    background: #3a7bc8;
+    border-color: #4A90E2;
+    box-shadow: 0 6px 25px rgba(74, 144, 226, 0.6);
+}
+
+@keyframes mic-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
+    }
+
+    50% {
+        transform: scale(1.15);
+        box-shadow: 0 8px 30px rgba(74, 144, 226, 0.7);
+    }
+}
+
+/* Chat Messages */
+.chat-container {
+    background: #ffffff;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-messages {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.chat-controls {
+    padding: 1rem;
+    border-top: 1px solid rgba(0, 240, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.message {
+    padding: 1rem;
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+    animation: message-slide-in 0.3s ease-out;
+}
+
+@keyframes message-slide-in {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.msg-user {
+    background: rgba(74, 144, 226, 0.1);
+    border-left: 3px solid #4A90E2;
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.1);
+    color: #000;
+}
+
+.msg-tutor {
+    background: rgba(74, 144, 226, 0.05);
+    border-left: 3px solid #4A90E2;
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.05);
+    color: #000;
+}
+
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table thead tr {
+    border-bottom: 2px solid rgba(0, 240, 255, 0.3);
+}
+
+table th {
+    padding: 1rem;
+    text-align: left;
+    color: var(--neon-cyan);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+}
+
+table tbody tr {
+    border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+    transition: var(--transition);
+}
+
+table tbody tr:hover {
+    background: rgba(0, 240, 255, 0.05);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+}
+
+table td {
+    padding: 1rem;
+    color: var(--text-main);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--neon-gradient-1);
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--neon-cyan);
+}

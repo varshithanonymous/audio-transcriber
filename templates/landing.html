@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}LinguaVoice - Master Languages Through Natural Conversation{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero Section Enhancements */
+    .hero-section {
+        min-height: calc(100vh - 80px);
+        display: flex;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 50%, #F0FDF4 100%);
+    }
+    
+    .flying-mascot {
+        position: absolute;
+        top: 15%;
+        right: 10%;
+        z-index: 10;
+        pointer-events: none;
+        animation: gentleFloat 6s ease-in-out infinite;
+    }
+    
+    @keyframes gentleFloat {
+        0%, 100% { transform: translateY(0) rotate(-5deg); }
+        50% { transform: translateY(-20px) rotate(5deg); }
+    }
+    
+    .mascot-image {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        box-shadow: 0 25px 50px rgba(16, 185, 129, 0.3);
+        border: 5px solid rgba(255, 255, 255, 0.9);
+        object-fit: cover;
+    }
+    
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: white;
+        padding: 0.75rem 1.75rem;
+        border-radius: 3rem;
+        border: 2px solid var(--emerald-500);
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .pulse-dot {
+        width: 10px;
+        height: 10px;
+        background: var(--emerald-500);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    
+    .hero-title {
+        font-size: 4rem;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        color: var(--navy-900);
+        animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.375rem;
+        line-height: 1.7;
+        color: var(--text-secondary);
+        margin-bottom: 3rem;
+        animation: fadeInUp 0.8s ease-out 0.4s both;
+    }
+    
+    .cta-buttons {
+        display: flex;
+        gap: 1.25rem;
+        flex-wrap: wrap;
+        animation: fadeInUp 0.8s ease-out 0.6s both;
+    }
+    
+    .social-proof {
+        margin-top: 4rem;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        animation: fadeInUp 0.8s ease-out 0.8s both;
+    }
+    
+    .avatar-stack {
+        display: flex;
+        margin-left: -10px;
+    }
+    
+    .avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 3px solid white;
+        margin-left: -12px;
+    }
+    
+    /* Features Section */
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 2rem;
+        margin-top: 3rem;
+    }
+    
+    .feature-card {
+        text-align: center;
+        padding: 3rem 2rem;
+    }
+    
+    .feature-icon {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        display: block;
+        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+    }
+    
+    /* CTA Section */
+    .cta-section {
+        background: var(--gradient-hero);
+        padding: 8rem 0;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .cta-mascot {
+        position: absolute;
+        bottom: 30px;
+        left: 60px;
+        opacity: 0.25;
+        pointer-events: none;
+        animation: fadeIn 1s ease-out;
+    }
+    
+    @media (max-width: 768px) {
+        .hero-title { font-size: 2.5rem; }
+        .hero-subtitle { font-size: 1.125rem; }
+        .flying-mascot { display: none; }
+        .features-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <!-- Flying Mascot -->
+    <div class="flying-mascot">
+        <img src="/static/images/serphawk_logo.jpg" 
+             class="mascot-image hawk-mascot-interactive fly" 
+             alt="Serp Hawk Flying">
+    </div>
+    
+    <div class="container">
+        <div style="max-width: 750px;">
+            <!-- Badge -->
+            <div class="badge">
+                <div class="pulse-dot"></div>
+                <span style="font-weight: 700; font-size: 0.9375rem; color: var(--navy-900);">AI-Powered Language Learning Platform</span>
+            </div>
+            
+            <!-- Hero Title -->
+            <h1 class="hero-title">
+                Master Languages Through
+                <span class="text-gradient">Natural Conversation</span>
+            </h1>
+            
+            <!-- Subtitle -->
+            <p class="hero-subtitle">
+                Speak with our intelligent AI tutor, receive instant personalized feedback, and build fluency faster than traditional methods. Your Serp Hawk companion makes every lesson engaging and fun! 🦅
+            </p>
+            
+            <!-- CTAs -->
+            <div class="cta-buttons">
+                <a href="/signup" class="btn btn-primary btn-large">
+                    <span>Get Started Free</span>
+                    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+                <a href="/public/notes" class="btn btn-secondary btn-large">
+                    🎙️ Try Voice Notes
+                </a>
+                <a href="/public/test" class="btn btn-secondary btn-large">
+                    🏆 Quick Practice
+                </a>
+            </div>
+            
+            <!-- Social Proof -->
+            <div class="social-proof">
+                <div class="avatar-stack">
+                    <div class="avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                    <div class="avatar" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"></div>
+                    <div class="avatar" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></div>
+                    <div class="avatar" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);"></div>
+                </div>
+                <div>
+                    <div style="font-weight: 800; color: var(--navy-900); font-size: 1.125rem;">Join 50,000+ learners</div>
+                    <div style="color: var(--text-secondary); font-size: 0.9375rem;">Speaking with confidence worldwide</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" style="padding: 8rem 0; background: white;">
+    <div class="container">
+        <div class="text-center" style="margin-bottom: 4rem;">
+            <h2 style="margin-bottom: 1.5rem; color: var(--navy-900);">Why LinguaVoice Works</h2>
+            <p style="font-size: 1.25rem; color: var(--text-secondary); max-width: 680px; margin: 0 auto; line-height: 1.7;">
+                Our AI-powered platform combines proven learning methods with cutting-edge speech recognition technology
+            </p>
+        </div>
+        
+        <div class="features-grid">
+            <!-- Feature 1 -->
+            <div class="glass-card feature-card">
+                <span class="feature-icon">🎙️</span>
+                <h3 style="margin-bottom: 1rem; color: var(--navy-900);">Real-Time Conversation</h3>
+                <p style="color: var(--text-secondary); line-height: 1.7;">
+                    Speak naturally with our AI tutor. Get instant feedback on pronunciation, grammar, vocabulary, and fluency in real-time.
+                </p>
+            </div>
+            
+            <!-- Feature 2 -->
+            <div class="glass-card feature-card">
+                <span class="feature-icon">🦅</span>
+                <h3 style="margin-bottom: 1rem; color: var(--navy-900);">Serp Hawk Companion</h3>
+                <p style="color: var(--text-secondary); line-height: 1.7;">
+                    Your friendly AI mascot encourages you, celebrates your wins, and makes every learning session enjoyable and motivating.
+                </p>
+            </div>
+            
+            <!-- Feature 3 -->
+            <div class="glass-card feature-card">
+                <span class="feature-icon">📈</span>
+                <h3 style="margin-bottom: 1rem; color: var(--navy-900);">Track Your Progress</h3>
+                <p style="color: var(--text-secondary); line-height: 1.7;">
+                    Watch your vocabulary grow, maintain learning streaks, and see measurable improvement in your language skills week by week.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <!-- Mascot Peek -->
+    <div class="cta-mascot">
+        <img src="/static/images/serphawk_logo.jpg" 
+             style="width: 250px; height: 250px; border-radius: 50%; filter: brightness(1.3);" 
+             alt="Serp Hawk">
+    </div>
+    
+    <div class="container text-center" style="position: relative; z-index: 2;">
+        <h2 style="color: white; margin-bottom: 1.75rem; font-size: 3.5rem;">Ready to Start Speaking?</h2>
+        <p style="font-size: 1.375rem; opacity: 0.95; margin-bottom: 3rem; max-width: 680px; margin-left: auto; margin-right: auto; line-height: 1.7;">
+            Join thousands of learners who are mastering new languages through natural, AI-powered conversation.
+        </p>
+        <a href="/signup" class="btn btn-primary btn-large" style="background: white; color: var(--navy-900); box-shadow: 0 12px 35px rgba(255,255,255,0.25);">
+            Get Started - It's Free
+        </a>
+    </div>
+</section>
+{% endblock %}

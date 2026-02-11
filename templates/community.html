@@ -1,0 +1,37 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Community - LinguaVoice{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="text-align: center; padding: 4rem 1rem;">
+        <div style="font-size: 4rem; margin-bottom: 1.5rem;">👥</div>
+        <h1 style="font-size: 2.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem;">Community Groups</h1>
+        <p style="font-size: 1.25rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto 2.5rem;">
+            Connect with other learners, join language exchange groups, and practice together!
+        </p>
+        
+        <div class="card" style="max-width: 800px; margin: 0 auto; padding: 2rem;">
+            <div style="display: flex; gap: 1.5rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 2rem;">
+                <div style="width: 64px; height: 64px; background: #EEF2FF; color: #4F46E5; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 2rem; flex-shrink: 0;">🇪🇸</div>
+                <div style="text-align: left;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-primary);">Spanish Learners Club</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Daily conversations and vocabulary challenges for beginners to intermediate learners.</p>
+                    <button class="btn btn-primary">Join Group</button>
+                    <span style="display: inline-block; margin-left: 1rem; font-size: 0.9rem; color: var(--text-secondary);">1,240 members</span>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 1.5rem;">
+                <div style="width: 64px; height: 64px; background: #FFF7ED; color: #EA580C; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 2rem; flex-shrink: 0;">🇫🇷</div>
+                <div style="text-align: left;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-primary);">French Coffee Chat</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Casual voice rooms for practicing pronunciation and listening skills.</p>
+                    <button class="btn btn-primary" style="background: white; color: var(--text-primary); border: 1px solid var(--border-subtle);">Join Group</button>
+                    <span style="display: inline-block; margin-left: 1rem; font-size: 0.9rem; color: var(--text-secondary);">856 members</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

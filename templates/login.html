@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Login - LinguaVoice{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        min-height: calc(100vh - 80px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 1.5rem;
+        background: linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 100%);
+    }
+    
+    .auth-box {
+        width: 100%;
+        max-width: 480px;
+    }
+    
+    .mascot-welcome {
+        text-align: center;
+        margin-bottom: 2.5rem;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .mascot-container {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 1.5rem;
+    }
+    
+    .mascot-avatar {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        box-shadow: 0 15px 40px rgba(16, 185, 129, 0.25);
+        border: 5px solid white;
+        object-fit: cover;
+        animation: gentleBounce 2s ease-in-out infinite;
+    }
+    
+    @keyframes gentleBounce {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-10px) scale(1.03); }
+    }
+    
+    .auth-title {
+        font-size: 2.25rem;
+        margin-bottom: 0.75rem;
+        color: var(--navy-900);
+    }
+    
+    .auth-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.0625rem;
+    }
+    
+    .auth-card {
+        animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+    
+    .error-alert {
+        background: #FEF2F2;
+        border: 2px solid #FCA5A5;
+        color: #DC2626;
+        padding: 1.25rem;
+        border-radius: 1rem;
+        margin-bottom: 1.75rem;
+        font-weight: 500;
+        animation: shake 0.5s ease-in-out;
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        75% { transform: translateX(10px); }
+    }
+    
+    .form-group {
+        margin-bottom: 1.75rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 700;
+        font-size: 0.9375rem;
+        color: var(--navy-900);
+        margin-bottom: 0.625rem;
+        letter-spacing: 0.025em;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        font-family: var(--font-body);
+        font-size: 1.0625rem;
+        border: 2px solid var(--border-light);
+        border-radius: 1rem;
+        background: white;
+        transition: all 0.3s ease;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: var(--emerald-500);
+        box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.12);
+        transform: translateY(-2px);
+    }
+    
+    .submit-btn {
+        width: 100%;
+        padding: 1.125rem;
+        font-size: 1.125rem;
+        margin-top: 0.5rem;
+    }
+    
+    .divider {
+        margin-top: 2rem;
+        text-align: center;
+        padding-top: 2rem;
+        border-top: 2px solid var(--border-light);
+    }
+    
+    .signup-link {
+        color: var(--emerald-600);
+        font-weight: 700;
+        transition: all 0.2s ease;
+    }
+    
+    .signup-link:hover {
+        color: var(--emerald-500);
+        text-decoration: underline;
+    }
+    
+    @media (max-width: 640px) {
+        .auth-title { font-size: 1.875rem; }
+        .mascot-avatar { width: 110px; height: 110px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-box">
+        <!-- Mascot Welcome -->
+        <div class="mascot-welcome">
+            <div class="mascot-container">
+                <img src="/static/images/serphawk_logo.jpg" 
+                     class="mascot-avatar hawk-mascot-interactive wake idle" 
+                     alt="Serp Hawk">
+            </div>
+            <h1 class="auth-title">Welcome Back!</h1>
+            <p class="auth-subtitle">Your Serp Hawk missed you! 🦅✨</p>
+        </div>
+        
+        <!-- Login Card -->
+        <div class="glass-card auth-card">
+            {% if get_flashed_messages() %}
+                <div class="error-alert">
+                    {{ get_flashed_messages()[0] }}
+                </div>
+            {% endif %}
+            
+            <form method="POST">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        class="form-input" 
+                        placeholder="you@example.com"
+                        required
+                        autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-input" 
+                        placeholder="••••••••"
+                        required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary submit-btn">
+                    <span>Sign In</span>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </form>
+            
+            <div class="divider">
+                <p style="color: var(--text-secondary); font-size: 1.0625rem;">
+                    Don't have an account? 
+                    <a href="/signup" class="signup-link">Sign up free</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

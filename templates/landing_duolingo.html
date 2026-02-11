@@ -1,0 +1,124 @@
+{% extends "base_classic.html" %}
+
+{% block title %}LinguaVoice Pro | The Future of Fluency{% endblock %}
+
+{% block content %}
+<section style="position: relative; overflow: hidden; padding: 6rem 0; min-height: 90vh; display: flex; items-center;">
+    
+    <!-- Background Decor -->
+    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; overflow: hidden;">
+        <div style="position: absolute; top: -10%; right: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 60%); filter: blur(50px);"></div>
+        <div style="position: absolute; bottom: 0; left: -10%; width: 40vw; height: 40vw; background: radial-gradient(circle, rgba(15,23,42,0.1) 0%, transparent 60%); filter: blur(50px);"></div>
+    </div>
+
+    <div class="container" style="position: relative; z-index: 2;">
+        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 4rem; align-items: center;">
+            
+            <!-- Hero Text -->
+            <div class="animate-up">
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: rgba(255,255,255,0.6); border-radius: 2rem; border: 1px solid white; margin-bottom: 2rem; backdrop-filter: blur(10px);">
+                    <span style="display: block; width: 8px; height: 8px; background: var(--color-accent); border-radius: 50%;"></span>
+                    <span style="font-weight: 600; font-size: 0.9rem; color: #475569;">v2.0 Now Live</span>
+                </div>
+                
+                <h1 style="font-size: 4rem; line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -0.03em;">
+                    Language Learning,<br>
+                    <span style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Reimagined.</span>
+                </h1>
+                
+                <p style="font-size: 1.25rem; color: #64748B; margin-bottom: 3rem; max-width: 550px; line-height: 1.6;">
+                    Forget static apps. Meet your AI linguistic companion that listens, corrects, and converses with you in real-time.
+                </p>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn-glow" onclick="window.location.href='/signup'" style="font-size: 1.1rem; padding: 1rem 2rem;">START FREE TRIAL</button>
+                    <button style="background: rgba(255,255,255,0.5); border: 1px solid white; padding: 1rem 2rem; border-radius: 0.75rem; font-weight: 600; color: var(--color-primary); cursor: pointer; transition: 0.2s;" onclick="window.scrollTo({top: 800, behavior: 'smooth'})">
+                        View Features
+                    </button>
+                </div>
+                
+                <div style="margin-top: 3rem; display: flex; align-items: center; gap: 1.5rem;">
+                    <div style="display: flex;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: #CBD5E1; border: 2px solid white;"></div>
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: #94A3B8; border: 2px solid white; margin-left: -10px;"></div>
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: #64748B; border: 2px solid white; margin-left: -10px;"></div>
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; color: var(--color-primary); font-size: 1.1rem;">50,000+</div>
+                        <div style="color: #64748B; font-size: 0.9rem;">Professionals verified</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Hero Visual -->
+            <div style="position: relative;" class="animate-up delay-100">
+                <!-- Floating Glass Card -->
+                <div class="glass-card" style="padding: 2.5rem; position: relative;">
+                    <!-- Interactive Mascot -->
+                    <div style="position: absolute; top: -60px; right: -40px; pointer-events: none;">
+                        <img src="/static/images/serphawk_logo.jpg" class="hawk-mascot-interactive" style="width: 100px; height: 100px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+                    </div>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Daily Progress</h3>
+                        <p style="color: #64748B;">You're crushing your Spanish goals!</p>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.5); padding: 1rem; border-radius: 1rem; display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="width: 48px; height: 48px; background: #E0F2FE; color: #0284C7; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">🗣️</div>
+                        <div>
+                            <div style="font-weight: 700;">Pronunciation</div>
+                            <div style="font-size: 0.9rem; color: #64748B;">98% Accuracy</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.5); padding: 1rem; border-radius: 1rem; display: flex; align-items: center; gap: 1rem;">
+                        <div style="width: 48px; height: 48px; background: #DCFCE7; color: #166534; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">🧠</div>
+                        <div>
+                            <div style="font-weight: 700;">Vocabulary</div>
+                            <div style="font-size: 0.9rem; color: #64748B;">+12 Words Today</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</section>
+
+<!-- Features Grid -->
+<section style="padding: 6rem 0; background: white;">
+    <div class="container">
+        <div class="text-center" style="max-width: 600px; margin: 0 auto 4rem;">
+            <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Not just another app.</h2>
+            <p style="font-size: 1.1rem; color: #64748B;">
+                We combined cognitive science with advanced speech recognition to create the ultimate fluency engine.
+            </p>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;">
+            <div class="glass-card" style="padding: 2rem; background: #F8FAFC;">
+                <div style="font-size: 2.5rem; margin-bottom: 1rem;">🎙️</div>
+                <h3>Active Speech</h3>
+                <p style="color: #64748B; margin-top: 0.5rem;">
+                    Don't just tap buttons. Speak naturally and get instant feedback on your tone, pitch, and grammar.
+                </p>
+            </div>
+            <div class="glass-card" style="padding: 2rem; background: #F8FAFC;">
+                <div style="font-size: 2.5rem; margin-bottom: 1rem;">🦅</div>
+                <h3>Serp Hawk AI</h3>
+                <p style="color: #64748B; margin-top: 0.5rem;">
+                    Your intelligent companion that adapts to your learning style, keeping you motivated and on track.
+                </p>
+            </div>
+            <div class="glass-card" style="padding: 2rem; background: #F8FAFC;">
+                <div style="font-size: 2.5rem; margin-bottom: 1rem;">⚡</div>
+                <h3>Rapid Fluency</h3>
+                <p style="color: #64748B; margin-top: 0.5rem;">
+                    Our methodology focuses on high-frequency vocabulary and real-world context for 3x faster mastery.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

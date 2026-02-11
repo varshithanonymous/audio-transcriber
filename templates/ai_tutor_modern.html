@@ -1,0 +1,851 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}AI Voice Tutor - LinguaVoice{% endblock %}
+{% block page_title %}AI Voice Tutor{% endblock %}
+{% block page_subtitle %}Master languages with your intelligent companion{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Premium Page Layout */
+    .tutor-page-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding-bottom: 4rem;
+    }
+
+    /* === Language Setup Card === */
+    .setup-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 2rem;
+        padding: 3rem;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.05);
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    .setup-header {
+        margin-bottom: 3rem;
+    }
+
+    .setup-title {
+        font-family: var(--font-display);
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, var(--navy-900) 0%, var(--emerald-600) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+    }
+
+    .setup-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+    .language-section {
+        margin-bottom: 3rem;
+    }
+
+    .section-label {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: var(--navy-800);
+        margin-bottom: 1.5rem;
+        display: block;
+    }
+
+    .language-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .lang-card {
+        background: white;
+        border: 2px solid transparent;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .lang-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .lang-card.selected {
+        border-color: var(--emerald-500);
+        background: linear-gradient(145deg, #ffffff 0%, var(--emerald-100) 100%);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.2);
+    }
+
+    .lang-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 1.4rem;
+        box-shadow: inset 0 0 0 2px var(--emerald-500);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .lang-card.selected::after {
+        opacity: 1;
+    }
+
+    .lang-flag {
+        font-size: 3rem;
+        margin-bottom: 0.75rem;
+        display: block;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .lang-card:hover .lang-flag {
+        transform: scale(1.1);
+    }
+
+    .lang-name {
+        font-weight: 700;
+        color: var(--navy-800);
+        font-size: 1.1rem;
+    }
+
+    #start-btn {
+        margin-top: 2rem;
+        transition: all 0.3s;
+        padding: 1.25rem 4rem;
+        font-size: 1.25rem;
+    }
+
+    #start-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* === Active Tutor Interface === */
+    .tutor-interface {
+        display: none;
+        animation: slideUp 0.5s ease-out;
+    }
+
+    .tutor-interface.active {
+        display: block;
+    }
+
+    /* Main Chat Area */
+    .chat-area {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        border-radius: 2rem;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        min-height: 500px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
+    /* Header with Mascot */
+    .chat-header {
+        padding: 1.5rem 2rem;
+        background: rgba(255, 255, 255, 0.9);
+        border-bottom: 1px solid var(--border-light);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .mascot-profile {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .mascot-avatar-small {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid var(--emerald-500);
+        padding: 2px;
+        background: white;
+    }
+    
+    .mascot-avatar-small img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+
+    .mascot-info h3 {
+        font-size: 1.1rem;
+        margin: 0;
+        color: var(--navy-900);
+    }
+
+    .mascot-status {
+        font-size: 0.85rem;
+        color: var(--emerald-600);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--emerald-500);
+        border-radius: 50%;
+        animation: pulse-dot 2s infinite;
+    }
+
+    /* Chat Content */
+    .chat-content {
+        flex: 1;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Big Mascot Display */
+    .mascot-stage {
+        text-align: center;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+    .mascot-large {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        border: 4px solid white;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        margin: 0 auto;
+        position: relative;
+        z-index: 2;
+        background: white;
+        transition: transform 0.3s;
+    }
+
+    .mascot-large img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+
+    /* Speaking Animation */
+    .mascot-large.speaking {
+        animation: speaking-bounce 1s infinite ease-in-out;
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0.1),
+                    0 0 0 20px rgba(16, 185, 129, 0.05);
+    }
+
+    .speaking-rings {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    /* Speech Bubbles */
+    .bubble-container {
+        width: 100%;
+        max-width: 700px;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .bubble {
+        padding: 1.5rem 2rem;
+        border-radius: 1.5rem;
+        font-size: 1.25rem;
+        line-height: 1.6;
+        position: relative;
+        max-width: 85%;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .bubble-ai {
+        align-self: flex-start;
+        background: white;
+        border-bottom-left-radius: 0.25rem;
+        color: var(--navy-800);
+        border: 1px solid var(--border-light);
+    }
+
+    .bubble-ai .translation {
+        display: block;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--border-light);
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+
+    .bubble-user {
+        align-self: flex-end;
+        background: linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%);
+        color: white;
+        border-bottom-right-radius: 0.25rem;
+        text-align: right;
+    }
+
+    .bubble-feedback {
+        align-self: center;
+        background: var(--bg-secondary);
+        border-radius: 1rem;
+        padding: 1rem 2rem;
+        font-size: 1rem;
+        color: var(--navy-700);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: -0.5rem;
+        border: 1px solid var(--border-light);
+    }
+    
+    .bubble-feedback.success {
+        background: var(--emerald-100);
+        color: var(--emerald-900);
+        border-color: var(--emerald-500);
+    }
+    
+    .bubble-feedback.error {
+        background: #FEE2E2;
+        color: #991B1B;
+        border-color: #EF4444;
+    }
+
+    /* Controls Area */
+    .controls-area {
+        background: white;
+        padding: 2rem;
+        border-top: 1px solid var(--border-light);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .status-badge {
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 0.5rem 1.5rem;
+        border-radius: 2rem;
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        transition: all 0.3s;
+    }
+    
+    .status-badge.listening {
+        background: #FEF3C7;
+        color: #D97706;
+        animation: pulse 1.5s infinite;
+    }
+
+    .mic-button-wrapper {
+        position: relative;
+        z-index: 10;
+        margin-top: -4rem; /* Overlap chat content */
+    }
+
+    .mic-btn {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%);
+        color: white;
+        font-size: 2.5rem;
+        cursor: pointer;
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .mic-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 15px 35px rgba(16, 185, 129, 0.5);
+    }
+
+    .mic-btn.listening {
+        background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+        box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+        animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+
+    .mic-waves {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        z-index: -1;
+        pointer-events: none;
+    }
+    
+    .mic-btn.listening .mic-waves::before,
+    .mic-btn.listening .mic-waves::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(239, 68, 68, 0.2);
+        border-radius: 50%;
+        animation: wave 2s linear infinite;
+    }
+    
+    .mic-btn.listening .mic-waves::after {
+        animation-delay: 1s;
+    }
+
+    .action-row {
+        display: flex;
+        gap: 1rem;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .action-btn-secondary {
+        padding: 0.75rem 1.5rem;
+        border-radius: 1rem;
+        border: 2px solid var(--border-light);
+        background: white;
+        color: var(--navy-700);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .action-btn-secondary:hover {
+        border-color: var(--navy-200);
+        background: var(--bg-secondary);
+        transform: translateY(-2px);
+    }
+
+    /* Keyframes */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes speaking-bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+    @keyframes wave { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.5); opacity: 0; } }
+    @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+    
+    @media (max-width: 768px) {
+        .language-grid {
+            grid-template-columns: 1fr;
+        }
+        .mic-btn {
+            width: 70px;
+            height: 70px;
+            font-size: 2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tutor-page-container">
+    
+    <!-- 1. Language Setup Module -->
+    <div class="setup-card" id="language-setup">
+        <div class="setup-header">
+            <h1 class="setup-title">Conversation Practice</h1>
+            <p class="setup-subtitle">Choose your languages to start speaking with Serp Hawk</p>
+        </div>
+        
+        <div class="language-section">
+            <label class="section-label">I speak:</label>
+            <div class="language-grid">
+                <div class="lang-card" onclick="selectBase('en', this)">
+                    <span class="lang-flag">🇺🇸</span>
+                    <div class="lang-name">English</div>
+                </div>
+                <div class="lang-card" onclick="selectBase('es', this)">
+                    <span class="lang-flag">🇪🇸</span>
+                    <div class="lang-name">Spanish</div>
+                </div>
+                <div class="lang-card" onclick="selectBase('hi', this)">
+                    <span class="lang-flag">🇮🇳</span>
+                    <div class="lang-name">Hindi</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="language-section">
+            <label class="section-label">I want to learn:</label>
+            <div class="language-grid">
+                <div class="lang-card" onclick="selectTarget('en', this)">
+                    <span class="lang-flag">🇺🇸</span>
+                    <div class="lang-name">English</div>
+                </div>
+                <div class="lang-card" onclick="selectTarget('es', this)">
+                    <span class="lang-flag">🇪🇸</span>
+                    <div class="lang-name">Spanish</div>
+                </div>
+                <div class="lang-card" onclick="selectTarget('hi', this)">
+                    <span class="lang-flag">🇮🇳</span>
+                    <div class="lang-name">Hindi</div>
+                </div>
+            </div>
+        </div>
+        
+        <button id="start-btn" class="btn btn-primary btn-large" onclick="startVoiceConversation()" disabled>
+            Start Conversation <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+
+    <!-- 2. Active Tutor Interface -->
+    <div class="tutor-interface" id="voice-interface">
+        <div class="chat-area">
+            <div class="chat-header">
+                <div class="mascot-profile">
+                    <div class="mascot-avatar-small">
+                        <img src="{{ url_for('static', filename='images/serphawk_logo.jpg') }}" alt="Serp Hawk">
+                    </div>
+                    <div class="mascot-info">
+                        <h3>Serp Hawk Tutor</h3>
+                        <div class="mascot-status">
+                            <span class="status-dot"></span> Online & Ready
+                        </div>
+                    </div>
+                </div>
+                <button class="action-btn-secondary" onclick="exitConversation()" style="padding: 0.5rem 1rem; border-radius: 0.75rem;">
+                    <i class="fas fa-times"></i> End Session
+                </button>
+            </div>
+
+            <div class="chat-content">
+                <!-- Mascot Logic -->
+                <div class="mascot-stage">
+                    <div class="mascot-large" id="ai-mascot">
+                        <img src="{{ url_for('static', filename='images/serphawk_logo.jpg') }}" alt="Serp Hawk">
+                        <div class="speaking-rings"></div>
+                    </div>
+                </div>
+
+                <!-- Bubble Stream -->
+                <div class="bubble-container" id="bubble-stream">
+                    <!-- Default AI Message -->
+                    <div class="bubble bubble-ai" id="ai-current-msg">
+                        <div class="msg-content">Hello! I'm Serp Hawk. Click the microphone to start our lesson.</div>
+                        <div class="translation" id="ai-translation" style="display:none;"></div>
+                    </div>
+                    
+                    <!-- Feedback Bubble (Hidden by default) -->
+                    <div class="bubble bubble-feedback" id="feedback-bubble" style="display:none;">
+                        <i class="fas fa-check-circle"></i> <span>Perfect pronunciation!</span>
+                    </div>
+
+                    <!-- User Message (Hidden by default) -->
+                    <div class="bubble bubble-user" id="user-msg" style="display:none;">
+                        ...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls (Bottom) -->
+            <div class="controls-area">
+                <div class="mic-button-wrapper">
+                    <button class="mic-btn" id="mic-button" onclick="toggleListening()">
+                        <i class="fas fa-microphone"></i>
+                        <div class="mic-waves"></div>
+                    </button>
+                </div>
+
+                <div class="status-badge" id="status-text">Tap mic to speak</div>
+
+                <div class="action-row">
+                    <button class="action-btn-secondary" onclick="repeatPhrase()">
+                        <i class="fas fa-volume-up"></i> Listen Again
+                    </button>
+                    <button class="action-btn-secondary" onclick="nextPhrase()" style="border-color: var(--emerald-500); color: var(--emerald-700);">
+                        Next Phrase <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let baseLanguage = null;
+    let targetLanguage = null;
+    let isListening = false;
+    let currentPhrase = null;
+    let recognition = null;
+    
+    // Config
+    const languages = {
+        'en': { name: 'English', code: 'en-US' },
+        'es': { name: 'Spanish', code: 'es-ES' },
+        'hi': { name: 'Hindi', code: 'hi-IN' }
+    };
+
+    // --- Setup Functions ---
+
+    function selectBase(lang, el) {
+        baseLanguage = lang;
+        // Visual selection
+        document.querySelectorAll('.language-section:first-of-type .lang-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        checkStart();
+    }
+
+    function selectTarget(lang, el) {
+        targetLanguage = lang;
+        // Visual selection
+        document.querySelectorAll('.language-section:last-of-type .lang-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        checkStart();
+    }
+
+    function checkStart() {
+        const btn = document.getElementById('start-btn');
+        if (baseLanguage && targetLanguage && baseLanguage !== targetLanguage) {
+            btn.disabled = false;
+        } else {
+            btn.disabled = true;
+        }
+    }
+
+    function startVoiceConversation() {
+        // Transition UI
+        document.getElementById('language-setup').style.display = 'none';
+        
+        const interface = document.getElementById('voice-interface');
+        interface.classList.add('active');
+        
+        // Init logic
+        initSpeechRecognition();
+        getNextPhrase();
+    }
+
+    function exitConversation() {
+        // Stop everything
+        if (recognition) recognition.stop();
+        window.speechSynthesis.cancel();
+        
+        // Reset UI
+        document.getElementById('voice-interface').classList.remove('active');
+        setTimeout(() => {
+            document.getElementById('language-setup').style.display = 'block';
+            document.getElementById('language-setup').style.animation = 'fadeIn 0.5s ease-out';
+        }, 100);
+    }
+
+    // --- Core Logic ---
+
+    function initSpeechRecognition() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = languages[targetLanguage].code;
+            
+            recognition.onstart = () => {
+                updateStatus('Listening...', 'listening');
+            };
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                handleUserSpeech(transcript);
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech error:', event.error);
+                stopListeningUI();
+                updateStatus('Didn\'t catch that. Try again.', 'error');
+            };
+            
+            recognition.onend = () => {
+                stopListeningUI();
+            };
+        } else {
+            alert('Speech recognition is not supported in this browser. Please use Chrome.');
+        }
+    }
+
+    async function getNextPhrase() {
+        updateStatus('Serp Hawk is thinking...', 'loading');
+        
+        // Reset bubbles
+        document.getElementById('feedback-bubble').style.display = 'none';
+        document.getElementById('user-msg').style.display = 'none';
+        
+        try {
+            const response = await fetch('/api/ai_voice_phrase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    base_language: baseLanguage,
+                    target_language: targetLanguage
+                })
+            });
+            
+            const data = await response.json();
+            currentPhrase = data;
+            
+            // Update UI
+            const aiBubble = document.getElementById('ai-current-msg');
+            aiBubble.querySelector('.msg-content').textContent = data.phrase;
+            
+            const transEl = document.getElementById('ai-translation');
+            transEl.textContent = data.translation;
+            transEl.style.display = 'block';
+            
+            // Speak
+            speakPhrase(data.phrase, targetLanguage);
+            updateStatus('Tap mic to repeat', 'ready');
+            
+        } catch (error) {
+            console.error(error);
+            updateStatus('Error connecting to AI', 'error');
+        }
+    }
+
+    function speakPhrase(text, lang) {
+        window.speechSynthesis.cancel(); // Stop preview audio
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = languages[lang].code;
+        utterance.rate = 0.85; 
+        
+        // Mascot animation trigger
+        const mascot = document.getElementById('ai-mascot');
+        mascot.classList.add('speaking');
+        
+        utterance.onend = () => {
+             mascot.classList.remove('speaking');
+        };
+        
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // --- User Interaction ---
+
+    function toggleListening() {
+        if (isListening) {
+            recognition.stop();
+        } else {
+            recognition.start();
+            isListening = true;
+            document.getElementById('mic-button').classList.add('listening');
+        }
+    }
+    
+    function stopListeningUI() {
+        isListening = false;
+        document.getElementById('mic-button').classList.remove('listening');
+    }
+
+    function handleUserSpeech(transcript) {
+        // Show what user said
+        const userBubble = document.getElementById('user-msg');
+        userBubble.textContent = transcript;
+        userBubble.style.display = 'block';
+        userBubble.classList.add('animate-in'); // Add animation class if not present
+        
+        checkPronunciation(transcript);
+    }
+
+    async function checkPronunciation(userText) {
+        updateStatus('Analyzing pronunciation...', 'loading');
+        
+        try {
+            const response = await fetch('/api/ai_check_pronunciation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    expected: currentPhrase.phrase,
+                    actual: userText,
+                    language: targetLanguage
+                })
+            });
+            
+            const data = await response.json();
+            showFeedback(data);
+            
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    function showFeedback(data) {
+        const feedbackBubble = document.getElementById('feedback-bubble');
+        feedbackBubble.style.display = 'flex';
+        feedbackBubble.className = 'bubble bubble-feedback animate-in'; // Reset classes
+        
+        if (data.correct) {
+            feedbackBubble.classList.add('success');
+            feedbackBubble.innerHTML = `<i class="fas fa-check-circle"></i> <span>${data.message || 'Excellent!'}</span>`;
+            updateStatus('Great job! Next phrase?', 'success');
+        } else {
+            feedbackBubble.classList.add('error');
+            feedbackBubble.innerHTML = `<i class="fas fa-redo"></i> <span>${data.message || 'Try again.'}</span>`;
+            updateStatus('Keep trying!', 'alert');
+        }
+    }
+
+    // --- Helpers ---
+    
+    function repeatPhrase() {
+        if(currentPhrase) speakPhrase(currentPhrase.phrase, targetLanguage);
+    }
+    
+    function nextPhrase() {
+        getNextPhrase();
+    }
+
+    function updateStatus(text, type) {
+        const el = document.getElementById('status-text');
+        el.textContent = text;
+        el.className = 'status-badge'; // reset
+        if(type === 'listening') el.classList.add('listening');
+    }
+
+</script>
+{% endblock %}

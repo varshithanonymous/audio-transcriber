@@ -1,0 +1,181 @@
+{% extends "base_classic.html" %}
+
+{% block title %}Analytics - LinguaVoice{% endblock %}
+{% block page_title %}Learning Analytics{% endblock %}
+{% block page_subtitle %}Track your progress and insights{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--space-6);
+        margin-bottom: var(--space-8);
+    }
+    
+    .analytics-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .card-title {
+        font-family: var(--font-serif);
+        font-size: var(--text-xl);
+        color: var(--color-primary);
+        margin-bottom: var(--space-6);
+        padding-bottom: var(--space-3);
+        border-bottom: 2px solid var(--color-parchment);
+    }
+    
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-4);
+        background: var(--color-parchment);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-3);
+    }
+    
+    .stat-label {
+        fontweight: 600;
+        color: var(--color-charcoal);
+    }
+    
+    .stat-value {
+        font-family: var(--font-serif);
+        font-size: var(--text-2xl);
+        font-weight: 700;
+        color: var(--color-accent);
+    }
+    
+    .chart-container {
+        height: 300px;
+        background: var(--color-parchment);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-charcoal);
+        font-style: italic;
+    }
+    
+    .milestone {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4);
+        background: var(--color-parchment);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-3);
+    }
+    
+    .milestone-icon {
+        font-size: var(--text-3xl);
+    }
+    
+    .milestone-text {
+        flex: 1;
+    }
+    
+    .milestone-title {
+        font-weight: 600;
+        color: var(--color-primary);
+    }
+    
+    .milestone-date {
+        font-size: var(--text-sm);
+        color: var(--color-charcoal);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-grid">
+    <div class="analytics-card">
+        <h3 class="card-title">📊 Overview Stats</h3>
+        <div class="stat-row">
+            <span class="stat-label">Total Words</span>
+            <span class="stat-value" id="total-words">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">This Week</span>
+            <span class="stat-value" id="week-words">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Current Streak</span>
+            <span class="stat-value" id="streak">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Total XP</span>
+            <span class="stat-value" id="total-xp">0</span>
+        </div>
+    </div>
+    
+    <div class="analytics-card">
+        <h3 class="card-title">🌍 Language Breakdown</h3>
+        <div class="stat-row">
+            <span class="stat-label">🇬🇧 English</span>
+            <span class="stat-value" id="en-count">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">🇪🇸 Spanish</span>
+            <span class="stat-value" id="es-count">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">🇮🇳 Hindi</span>
+            <span class="stat-value" id="hi-count">0</span>
+        </div>
+    </div>
+    
+    <div class="analytics-card">
+        <h3 class="card-title">🏆 Milestones</h3>
+        <div id="milestones">
+            <div class="milestone">
+                <div class="milestone-icon">🌟</div>
+                <div class="milestone-text">
+                    <div class="milestone-title">First Word Learned</div>
+                    <div class="milestone-date">When you started your journey</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="analytics-card">
+    <h3 class="card-title">📈 Progress Over Time</h3>
+    <div class="chart-container">
+        Interactive charts coming soon! Track your daily/weekly/monthly progress.
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadAnalytics() {
+    const [statsRes, vocabRes] = await Promise.all([
+        fetch('/api/stats'),
+        fetch('/api/get_my_spoken_words')
+    ]);
+    
+    const stats = (await statsRes.json()).stats || {};
+    const vocab = await vocabRes.json();
+    
+    document.getElementById('total-words').textContent = vocab.length;
+    document.getElementById('total-xp').textContent = stats.total_xp || 0;
+    document.getElementById('streak').textContent = stats.current_streak || 0;
+    
+    const enWords = vocab.filter(w => w.language === 'en').length;
+    const esWords = vocab.filter(w => w.language === 'es').length;
+    const hiWords = vocab.filter(w => w.language === 'hi').length;
+    
+    document.getElementById('en-count').textContent = enWords;
+    document.getElementById('es-count').textContent = esWords;
+    document.getElementById('hi-count').textContent = hiWords;
+}
+
+loadAnalytics();
+</script>
+{% endblock %}

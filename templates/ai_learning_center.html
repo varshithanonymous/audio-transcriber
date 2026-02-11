@@ -1,0 +1,586 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}AI Learning Center - LinguaVoice{% endblock %}
+{% block page_title %}AI Learning Center 🎓{% endblock %}
+{% block page_subtitle %}Choose your learning style and master new vocabulary{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Search Bar */
+    .search-container {
+        max-width: 600px;
+        margin: 0 auto var(--space-8);
+        position: relative;
+    }
+    
+    .search-bar {
+        width: 100%;
+        padding: 1rem 3.5rem;
+        font-size: 1rem;
+        border: 2px solid white;
+        border-radius: 3rem;
+        background: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s;
+    }
+    
+    .search-bar:focus {
+        outline: none;
+        box-shadow: 0 6px 30px rgba(0, 0, 0, 0.12);
+        border-color: #3b82f6;
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.25rem;
+        color: var(--color-charcoal);
+    }
+    
+    .mic-icon {
+        position: absolute;
+        right: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.25rem;
+        color: var(--color-charcoal);
+        cursor: pointer;
+    }
+    
+    /* Learning Modes Grid */
+    .modes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: var(--space-6);
+        margin-bottom: var(--space-8);
+    }
+    
+    .mode-card {
+        background: white;
+        border-radius: 1.5rem;
+        padding: var(--space-8);
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 3px solid transparent;
+        cursor: pointer;
+    }
+    
+    .mode-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+    
+    .mode-card.active {
+        border-color: #14b8a6;
+        background: linear-gradient(135deg, #f0fdfa 0%, white 100%);
+    }
+    
+    .mode-icon-wrapper {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto var(--space-4);
+        border-radius: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3.5rem;
+        background: var(--icon-bg);
+        transition: transform 0.3s;
+    }
+    
+    .mode-card:hover .mode-icon-wrapper {
+        transform: scale(1.1);
+    }
+    
+    .mode-card:nth-child(1) { --icon-bg: linear-gradient(135deg, #ddd6fe 0%, #e9d5ff 100%); }
+    .mode-card:nth-child(2) { --icon-bg: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); }
+    .mode-card:nth-child(3) { --icon-bg: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
+    .mode-card:nth-child(4) { --icon-bg: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%); }
+    
+    .mode-title {
+        font-family: var(--font-serif);
+        font-size: 1.5rem;
+        color: var(--color-primary);
+        margin-bottom: var(--space-2);
+    }
+    
+    .mode-description {
+        font-size: 0.9375rem;
+        color: var(--color-charcoal);
+        margin-bottom: var(--space-6);
+        line-height: 1.5;
+    }
+    
+    .mode-btn {
+        width: 100%;
+        padding: 0.875rem 1.5rem;
+        border: none;
+        border-radius: 3rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .mode-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn-teal {
+        background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+        color: white;
+    }
+    
+    .btn-purple {
+        background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+        color: white;
+    }
+    
+    .btn-blue {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+    }
+    
+    .btn-orange {
+        background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+        color: white;
+    }
+    
+    /* Progress Section */
+    .progress-section {
+        background: white;
+        border-radius: 1.5rem;
+        padding: var(--space-8);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: var(--space-6);
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-6);
+    }
+    
+    .section-title {
+        font-family: var(--font-serif);
+        font-size: 1.5rem;
+        color: var(--color-primary);
+    }
+    
+    .nav-arrows {
+        display: flex;
+        gap: var(--space-2);
+    }
+    
+    .nav-arrow {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--color-parchment);
+        border: none;
+        cursor: pointer;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+    
+    .nav-arrow:hover {
+        background: var(--color-gray-300);
+    }
+    
+    .progress-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--space-6);
+    }
+    
+    .progress-card {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+    }
+    
+    .progress-circle {
+        position: relative;
+        width: 120px;
+        height: 120px;
+    }
+    
+    .progress-circle svg {
+        transform: rotate(-90deg);
+    }
+    
+    .progress-circle-bg {
+        fill: none;
+        stroke: #e5e7eb;
+        stroke-width: 10;
+    }
+    
+    .progress-circle-fill {
+        fill: none;
+        stroke-width: 10;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 1s ease;
+    }
+    
+    .progress-circle-fill.teal {
+        stroke: #14b8a6;
+    }
+    
+    .progress-circle-fill.orange {
+        stroke: #fb923c;
+    }
+    
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+    
+    .progress-percentage {
+        font-family: var(--font-serif);
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+    
+    .progress-info h3 {
+        font-size: 1.125rem;
+        color: var(--color-primary);
+        margin-bottom: 0.25rem;
+    }
+    
+    .progress-info p {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--color-charcoal);
+        margin: 0;
+    }
+    
+    /* Recent Tests */
+    .tests-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+    
+    .test-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-4);
+        background: var(--color-parchment);
+        border-radius: 1rem;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .test-item:hover {
+        background: var(--color-gray-200);
+        transform: translateX(5px);
+    }
+    
+    .test-name {
+        font-weight: 600;
+        color: var(--color-primary);
+    }
+    
+    .test-meta {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+    
+    .test-progress-bar {
+        width: 120px;
+        height: 8px;
+        background: white;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+    
+    .test-progress-fill {
+        height: 100%;
+        border-radius: 1rem;
+        transition: width 0.5s ease;
+    }
+    
+    .test-progress-fill.orange { background: linear-gradient(90deg, #fb923c, #f97316); }
+    .test-progress-fill.coral { background: linear-gradient(90deg, #fb7185, #f43f5e); }
+    .test-progress-fill.blue { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+    
+    .test-time {
+        font-size: 0.875rem;
+        color: var(--color-charcoal);
+    }
+    
+    @media (max-width: 968px) {
+        .modes-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .progress-cards {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Search Bar -->
+<div class="search-container">
+    <span class="search-icon">🔍</span>
+    <input 
+        type="text" 
+        class="search-bar" 
+        placeholder="Search vocab or topics..."
+        id="search-input"
+    >
+    <span class="mic-icon">🎤</span>
+</div>
+
+<!-- Learning Modes Grid -->
+<div class="modes-grid">
+    <!-- Flashcards Mode -->
+    <div class="mode-card active" onclick="startMode('flashcards')">
+        <div class="mode-icon-wrapper">
+            <span>🃏</span>
+        </div>
+        <h3 class="mode-title">Flashcards</h3>
+        <p class="mode-description">Learn with interactive flip cards</p>
+        <button class="mode-btn btn-teal">
+            <span>Start Now</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+    <!-- Quiz Mode -->
+    <div class="mode-card" onclick="startMode('quiz')">
+        <div class="mode-icon-wrapper">
+            <span>❓</span>
+        </div>
+        <h3 class="mode-title">Quiz Mode</h3>
+        <p class="mode-description">Test your knowledge instantly</p>
+        <button class="mode-btn btn-purple">
+            <span>Start Quiz</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+    <!-- AI Conversation -->
+    <div class="mode-card" onclick="startMode('chat')">
+        <div class="mode-icon-wrapper">
+            <span>💬</span>
+        </div>
+        <h3 class="mode-title">AI Conversation</h3>
+        <p class="mode-description">Chat with your Serp Hawk tutor</p>
+        <button class="mode-btn btn-blue">
+            <span>Start Chat</span>
+            <span>→</span>
+        </button>
+    </div>
+    
+    <!-- Practice Test -->
+    <div class="mode-card" onclick="startMode('test')">
+        <div class="mode-icon-wrapper">
+            <span>📝</span>
+        </div>
+        <h3 class="mode-title">Practice Test</h3>
+        <p class="mode-description">Timed comprehensive exam</p>
+        <button class="mode-btn btn-orange">
+            <span>Begin Test</span>
+            <span>→</span>
+        </button>
+    </div>
+</div>
+
+<!-- Progress Section -->
+<div class="progress-section">
+    <div class="section-header">
+        <h2 class="section-title">Your Progress</h2>
+        <div class="nav-arrows">
+            <button class="nav-arrow">‹</button>
+            <button class="nav-arrow">›</button>
+        </div>
+    </div>
+    
+    <div class="progress-cards">
+        <!-- Learned Words -->
+        <div class="progress-card">
+            <div class="progress-circle">
+                <svg width="120" height="120">
+                    <circle class="progress-circle-bg" cx="60" cy="60" r="52"/>
+                    <circle class="progress-circle-fill teal" cx="60" cy="60" r="52" 
+                            stroke-dasharray="326.73" stroke-dashoffset="179.70" id="learned-circle"/>
+                </svg>
+                <div class="progress-text">
+                    <div class="progress-percentage" id="learned-pct">45%</div>
+                </div>
+            </div>
+            <div class="progress-info">
+                <h3>Learned Words</h3>
+                <p><span id="learned-count">67</span> / <span id="learned-total">150</span></p>
+            </div>
+        </div>
+        
+        <!-- Tests Passed -->
+        <div class="progress-card">
+            <div class="progress-circle">
+                <svg width="120" height="120">
+                    <circle class="progress-circle-bg" cx="60" cy="60" r="52"/>
+                    <circle class="progress-circle-fill orange" cx="60" cy="60" r="52" 
+                            stroke-dasharray="326.73" stroke-dashoffset="130.69" id="tests-circle"/>
+                </svg>
+                <div class="progress-text">
+                    <div class="progress-percentage" id="tests-pct">60%</div>
+                </div>
+            </div>
+            <div class="progress-info">
+                <h3>Tests Passed</h3>
+                <p><span id="tests-count">3</span> / <span id="tests-total">5</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Practice Tests -->
+<div class="progress-section">
+    <div class="section-header">
+        <h2 class="section-title">Recent Practice Tests</h2>
+        <div class="nav-arrows">
+            <button class="nav-arrow">‹</button>
+            <button class="nav-arrow">›</button>
+        </div>
+    </div>
+    
+    <div class="tests-list">
+        <div class="test-item">
+            <span class="test-name">Science Quiz</span>
+            <div class="test-meta">
+                <div class="test-progress-bar">
+                    <div class="test-progress-fill orange" style="width: 85%"></div>
+                </div>
+                <span class="test-time">5h ago →</span>
+            </div>
+        </div>
+        
+        <div class="test-item">
+            <span class="test-name">Vocabulary Test</span>
+            <div class="test-meta">
+                <div class="test-progress-bar">
+                    <div class="test-progress-fill coral" style="width: 70%"></div>
+                </div>
+                <span class="test-time">2d ago →</span>
+            </div>
+        </div>
+        
+        <div class="test-item">
+            <span class="test-name">History Exam</span>
+            <div class="test-meta">
+                <div class="test-progress-bar">
+                    <div class="test-progress-fill blue" style="width: 60%"></div>
+                </div>
+                <span class="test-time">3d ago →</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function startMode(mode) {
+        // Remove active class from all
+        document.querySelectorAll('.mode-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        
+        // Add active to clicked
+        event.currentTarget.classList.add('active');
+        
+        // Navigate based on mode
+        const routes = {
+            'flashcards': '/learning',
+            'quiz': '/learning',
+            'chat': '/learning',
+            'test': '/learning'
+        };
+        
+        if (routes[mode]) {
+            window.location.href = routes[mode];
+        }
+    }
+    
+    // Load actual progress data
+    async function loadProgress() {
+        try {
+            const [statsRes, vocabRes] = await Promise.all([
+                fetch('/api/stats'),
+                fetch('/api/get_my_spoken_words')
+            ]);
+            
+            const stats = (await statsRes.json()).stats || {};
+            const vocab = await vocabRes.json();
+            
+            // Update learned words
+            const totalWords = vocab.length;
+            const targetWords = 150;
+            const learnedPct = Math.round((totalWords / targetWords) * 100);
+            
+            document.getElementById('learned-count').textContent = totalWords;
+            document.getElementById('learned-total').textContent = targetWords;
+            document.getElementById('learned-pct').textContent = learnedPct + '%';
+            
+            // Update circle
+            const learnedCircle = document.getElementById('learned-circle');
+            const circumference = 326.73;
+            const offset = circumference - (learnedPct / 100) * circumference;
+            learnedCircle.style.strokeDashoffset = offset;
+            
+            // Update tests (mock data for now)
+            const testsPassed = 3;
+            const testsTotal = 5;
+            const testsPct = Math.round((testsPassed / testsTotal) * 100);
+            
+            document.getElementById('tests-count').textContent = testsPassed;
+            document.getElementById('tests-total').textContent = testsTotal;
+            document.getElementById('tests-pct').textContent = testsPct + '%';
+            
+            const testsCircle = document.getElementById('tests-circle');
+            const testsOffset = circumference - (testsPct / 100) * circumference;
+            testsCircle.style.strokeDashoffset = testsOffset;
+            
+        } catch (error) {
+            console.error('Error loading progress:', error);
+        }
+    }
+    
+    // Voice search
+    document.querySelector('.mic-icon').addEventListener('click', () => {
+        alert('Voice search feature coming soon!');
+    });
+    
+    // Search functionality
+    document.getElementById('search-input').addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        // Implement search logic here
+        console.log('Searching:', query);
+    });
+    
+    // Load data on page load
+    loadProgress();
+</script>
+{% endblock %}

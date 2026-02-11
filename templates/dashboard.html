@@ -1,0 +1,100 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Dashboard - LinguaVoice{% endblock %}
+
+{% block extra_css %}
+<!-- No extra internal CSS needed, relying on global premium style.css -->
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px; margin: 0 auto;">
+    <!-- Header -->
+    <div style="margin-bottom: 2.5rem;">
+        <h1 style="font-size: 2rem; color: var(--text-primary);">Hello, {{ user_name.split()[0] }} 👋</h1>
+        <p style="color: var(--text-secondary); font-size: 1.1rem;">Your daily progress summary</p>
+    </div>
+
+    <!-- Bento Grid Layout -->
+    <div class="grid-container">
+        
+        <!-- Main Stats Card (Span 8) -->
+        <div class="col-span-8 card" style="background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%); color: white; display:flex; flex-direction:column; justify-content:center;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <span style="opacity:0.8; font-weight:600; text-transform:uppercase; font-size:0.8rem; letter-spacing:1px;">Weekly Goal</span>
+                    <div style="font-size:3.5rem; font-weight:800; line-height:1.2;">1,240 XP</div>
+                    <div style="margin-top:10px; background:rgba(255,255,255,0.2); height:8px; width:200px; border-radius:10px; overflow:hidden;">
+                        <div style="background:white; height:100%; width:75%;"></div>
+                    </div>
+                    <div style="margin-top:5px; font-size:0.9rem; opacity:0.9;">You're on fire! 🔥 Keep it up.</div>
+                </div>
+                <div style="font-size:6rem; opacity:0.2;">🏆</div>
+            </div>
+        </div>
+
+        <!-- Streak Card (Span 4) -->
+        <div class="col-span-4 card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+            <div style="font-size:4rem; margin-bottom:10px;">🔥</div>
+            <div style="font-size:2.5rem; font-weight:800; color:var(--text-primary);">12 Days</div>
+            <div style="color:var(--text-secondary); font-weight:600;">Current Streak</div>
+        </div>
+
+        <!-- Quick Actions Row -->
+        <div class="col-span-4 card project-card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+                <span class="badge badge-blue">Learning</span>
+                <span style="font-size:1.5rem;">🤖</span>
+            </div>
+            <h3>AI Tutor</h3>
+            <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem;">Practice conversation with real-time feedback.</p>
+            <a href="/learning" class="btn btn-primary" style="width:100%;">Start Session</a>
+        </div>
+
+        <div class="col-span-4 card project-card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+                <span class="badge badge-green">Vocabulary</span>
+                <span style="font-size:1.5rem;">📚</span>
+            </div>
+            <h3>Flashcards</h3>
+            <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem;">Review your 85 saved words.</p>
+            <a href="/vocabulary" class="btn btn-secondary" style="width:100%;">Review Now</a>
+        </div>
+        
+        <div class="col-span-4 card project-card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+                <span class="badge" style="background:#F3F4F6; color:#4B5563;">Tools</span>
+                <span style="font-size:1.5rem;">🎙️</span>
+            </div>
+            <h3>Transcriber</h3>
+            <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem;">Live audio transcription tool.</p>
+            <a href="/transcription" class="btn btn-secondary" style="width:100%;">Open Tool</a>
+        </div>
+
+        <!-- Recent Activity (Full Width) -->
+        <div class="col-span-12 card" style="padding:0; overflow:hidden;">
+            <div style="padding:1.5rem; border-bottom:1px solid var(--border-subtle); background:#F8FAFC;">
+                <h3>Recent Activity</h3>
+            </div>
+            <div>
+                <div style="display:flex; align-items:center; padding:1.2rem 1.5rem; border-bottom:1px solid var(--border-subtle);">
+                    <div style="width:40px; height:40px; border-radius:8px; background:#EEF2FF; color:#4F46E5; display:flex; align-items:center; justify-content:center; margin-right:1rem;">🎤</div>
+                    <div style="flex:1;">
+                        <div style="font-weight:600; color:var(--text-primary);">Conversation Practice</div>
+                        <div style="font-size:0.85rem; color:var(--text-secondary);">Today at 2:30 PM</div>
+                    </div>
+                    <div style="font-weight:bold; color:#10B981;">+50 XP</div>
+                </div>
+                <div style="display:flex; align-items:center; padding:1.2rem 1.5rem;">
+                    <div style="width:40px; height:40px; border-radius:8px; background:#ECFDF5; color:#10B981; display:flex; align-items:center; justify-content:center; margin-right:1rem;">📖</div>
+                    <div style="flex:1;">
+                        <div style="font-weight:600; color:var(--text-primary);">Completed Level 3 Quiz</div>
+                        <div style="font-size:0.85rem; color:var(--text-secondary);">Yesterday</div>
+                    </div>
+                    <div style="font-weight:bold; color:#10B981;">+100 XP</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

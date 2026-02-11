@@ -1,0 +1,354 @@
+{% extends "base_classic.html" %}
+
+{% block title %}Word Validation - LinguaVoice{% endblock %}
+{% block page_title %}Word Validation Center{% endblock %}
+{% block page_subtitle %}Validate and enrich your vocabulary with AI-powered word analysis{% endblock %}
+
+{% block extra_css %}
+<style>
+    .validation-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .input-section {
+        background: white;
+        border-radius: var(--radius-xl);
+        padding: var(--space-8);
+        box-shadow: var(--shadow-lg);
+        margin-bottom: var(--space-8);
+    }
+    
+    .validation-input-group {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: var(--space-4);
+        margin-bottom: var(--space-4);
+    }
+    
+    .word-input {
+        padding: var(--space-4);
+        font-size: var(--text-xl);
+        border: 2px solid var(--color-gray-300);
+        border-radius: var(--radius-md);
+        font-family: var(--font-serif);
+    }
+    
+    .word-input:focus {
+        outline: none;
+        border-color: var(--color-accent);
+        box-shadow: 0 0 0 3px rgba(197, 153, 107, 0.1);
+    }
+    
+    .lang-select {
+        padding: var(--space-4);
+        border: 2px solid var(--color-gray-300);
+        border-radius: var(--radius-md);
+        font-size: var(--text-base);
+        cursor: pointer;
+    }
+    
+    .validate-btn {
+        padding: var(--space-4) var(--space-8);
+        background: var(--color-accent);
+        color: var(--color-primary);
+        border: none;
+        border-radius: var(--radius-md);
+        font-size: var(--text-lg);
+        font-weight: 700;
+        cursor: pointer;
+        transition: all var(--transition-base);
+    }
+    
+    .validate-btn:hover {
+        background: var(--color-accent-dark);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .result-card {
+        background: white;
+        border-radius: var(--radius-xl);
+        padding: var(--space-8);
+        box-shadow: var(--shadow-lg);
+        border-left: 6px solid var(--color-accent);
+        animation: slideInUp 0.4s ease-out;
+    }
+    
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .result-word {
+        font-family: var(--font-serif);
+        font-size: var(--text-4xl);
+        font-weight: 700;
+        color: var(--color-primary);
+        margin-bottom: var(--space-3);
+    }
+    
+    .result-phonetic {
+        font-family: var(--font-mono);
+        font-size: var(--text-lg);
+        color: var(--color-charcoal);
+        margin-bottom: var(--space-6);
+    }
+    
+    .result-section {
+        margin-bottom: var(--space-6);
+    }
+    
+    .result-section-title {
+        font-family: var(--font-serif);
+        font-size: var(--text-xl);
+        color: var(--color-primary);
+        margin-bottom: var(--space-3);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+    
+    .result-content {
+        background: var(--color-parchment);
+        padding: var(--space-4);
+        border-radius: var(--radius-md);
+        line-height: 1.7;
+        color: var(--color-ink);
+    }
+    
+    .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+    
+    .tag {
+        padding: var(--space-2) var(--space-4);
+        background: white;
+        border: 1px solid var(--color-accent);
+        border-radius: var(--radius-md);
+        font-size: var(--text-sm);
+        color: var(--color-accent-dark);
+        font-weight: 600;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: var(--space-4);
+        margin-top: var(--space-6);
+    }
+    
+    .quick-validate {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+        box-shadow: var(--shadow-md);
+        margin-top: var(--space-8);
+    }
+    
+    .quick-validate-title {
+        font-family: var(--font-serif);
+        font-size: var(--text-xl);
+        color: var(--color-primary);
+        margin-bottom: var(--space-4);
+    }
+    
+    .unvalidated-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+    
+    .unvalidated-item {
+        display: flex;
+        justify-content: space-between;
+        alignitems: center;
+        padding: var(--space-3);
+        background: var(--color-parchment);
+        border-radius: var(--radius-md);
+    }
+    
+    .unvalidated-word {
+        font-weight: 600;
+        color: var(--color-primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="validation-container">
+    <div class="input-section">
+        <h3 style="font-family: var(--font-serif); font-size: var(--text-2xl); color: var(--color-primary); margin-bottom: var(--space-6);">
+            🔍 Validate a Word
+        </h3>
+        
+        <div class="validation-input-group">
+            <input 
+                type="text" 
+                id="word-input" 
+                class="word-input" 
+                placeholder="Enter a word to validate..."
+                onkeypress="if(event.key==='Enter') validateWord()"
+            >
+            <select id="lang-select" class="lang-select">
+                <option value="en">🇬🇧 English</option>
+                <option value="es">🇪🇸 Spanish</option>
+                <option value="hi">🇮🇳 Hindi</option>
+            </select>
+            <button class="validate-btn" onclick="validateWord()">
+                Validate
+            </button>
+        </div>
+        
+        <p style="font-size: var(--text-sm); color: var(--color-charcoal); margin-top: var(--space-3);">
+            💡 Enter any word to get its definition, pronunciation, synonyms, and more!
+        </p>
+    </div>
+    
+    <div id="result-container"></div>
+    
+    <div class="quick-validate">
+        <h3 class="quick-validate-title">⚡ Quick Actions</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+            <button class="btn btn-primary" onclick="checkGrammar()">
+                ✍️ Check Grammar
+            </button>
+            <button class="btn btn-accent" onclick="getSimilarWords()">
+                🔄 Find Similar Words
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function validateWord() {
+    const word = document.getElementById('word-input').value.trim();
+    const lang = document.getElementById('lang-select').value;
+    
+    if (!word) {
+        alert('Please enter a word!');
+        return;
+    }
+    
+    const resultContainer = document.getElementById('result-container');
+    resultContainer.innerHTML = '<div style="text-align: center; padding: var(--space-8); color: var(--color-charcoal);">🔄 Validating...</div>';
+    
+    try {
+        const res = await fetch(`/api/get_word_info?word=${encodeURIComponent(word)}&lang=${lang}`);
+        const data = await res.json();
+        
+        if (data.error) {
+            resultContainer.innerHTML = `
+                <div class="result-card" style="border-color: var(--color-error);">
+                    <h3 style="color: var(--color-error);">❌ Word Not Found</h3>
+                    <p>We couldn't find information for "${word}". Try checking the spelling or try a different language.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const html = `
+            <div class="result-card">
+                <div class="result-word">${data.word || word}</div>
+                ${data.phonetic ? `<div class="result-phonetic">${data.phonetic}</div>` : ''}
+                
+                ${data.definition ? `
+                    <div class="result-section">
+                        <div class="result-section-title">📖 Definition</div>
+                        <div class="result-content">${data.definition}</div>
+                    </div>
+                ` : ''}
+                
+                ${data.examples && data.examples.length > 0 ? `
+                    <div class="result-section">
+                        <div class="result-section-title">💡 Examples</div>
+                        <div class="result-content">
+                            ${data.examples.map(ex => `<div style="margin-bottom: var(--space-2);">"${ex}"</div>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${data.synonyms && data.synonyms.length > 0 ? `
+                    <div class="result-section">
+                        <div class="result-section-title">🔄 Synonyms</div>
+                        <div class="tag-list">
+                            ${data.synonyms.map(syn => `<span class="tag">${syn}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${data.similar_words && data.similar_words.length > 0 ? `
+                    <div class="result-section">
+                        <div class="result-section-title">🎯 Similar Words</div>
+                        <div class="tag-list">
+                            ${data.similar_words.map(sim => `<span class="tag">${sim}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="speakWord('${word}')">
+                        🔊 Pronounce
+                    </button>
+                    <button class="btn btn-accent" onclick="addToVocabulary('${word}', '${lang}')">
+                        ➕ Add to Vocabulary
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        resultContainer.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Validation error:', error);
+        resultContainer.innerHTML = `
+            <div class="result-card" style="border-color: var(--color-error);">
+                <h3 style="color: var(--color-error);">❌ Error</h3>
+                <p>An error occurred while validating the word. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+function speakWord(word) {
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(word);
+        speechSynthesis.speak(utterance);
+    }
+}
+
+async function addToVocabulary(word, lang) {
+    const res = await fetch(`/api/validate_word_manual?word=${encodeURIComponent(word)}&lang=${lang}`);
+    const data = await res.json();
+    
+    if (data.meaning || data.cached) {
+        alert(`✅ "${word}" added to your vocabulary!`);
+    } else {
+        alert('❌ Could not add word to vocabulary');
+    }
+}
+
+function checkGrammar() {
+    const text = prompt('Enter text to check grammar:');
+    if (text) {
+        alert('Grammar checking feature - integrate with LanguageTool API! Text: ' + text);
+    }
+}
+
+function getSimilarWords() {
+    const word = prompt('Enter a word to find similar words:');
+    if (word) {
+        alert('Finding similar words for: ' + word);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,461 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Transcription - LinguaVoice{% endblock %}
+{% block page_title %}Live Transcription 🎙️{% endblock %}
+{% block page_subtitle %}Practice your speaking with real-time transcription{% endblock %}
+
+{% block extra_css %}
+<style>
+    .transcription-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .main-panel {
+        background: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .language-selector {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .lang-btn {
+        padding: 0.75rem 1.5rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.75rem;
+        color: #4b5563;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .lang-btn:hover {
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+
+    .lang-btn.active {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+    }
+
+    .control-panel {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .mic-button {
+        flex: 1;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        border-radius: 1rem;
+        font-size: 1.125rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        transition: all 0.3s;
+    }
+
+    .mic-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+    }
+
+    .mic-button.recording {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.8;
+        }
+    }
+
+    .transcript-box {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        min-height: 300px;
+        max-height: 500px;
+        overflow-y: auto;
+        font-size: 1.0625rem;
+        line-height: 1.8;
+        color: #1e293b;
+    }
+
+    .transcript-text {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .sidebar-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .stats-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.9375rem;
+    }
+
+    .stat-value {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 1.125rem;
+    }
+
+    .recent-sessions {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .session-item {
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .session-item:hover {
+        background: #f3f4f6;
+    }
+
+    .session-time {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .session-preview {
+        font-size: 0.9375rem;
+        color: #4b5563;
+        margin-top: 0.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 968px) {
+        .transcription-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="transcription-container">
+    <!-- Main Panel -->
+    <div class="main-panel">
+        <!-- Language Selection -->
+        <div class="language-selector">
+            <button class="lang-btn active" onclick="setLanguage('en')">🇬🇧 English</button>
+            <button class="lang-btn" onclick="setLanguage('es')">🇪🇸 Spanish</button>
+            <button class="lang-btn" onclick="setLanguage('hi')">🇮🇳 Hindi</button>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="mic-button" id="mic-btn" onclick="toggleRecording()">
+                <span id="mic-icon">🎤</span>
+                <span id="mic-text">Start Recording</span>
+            </button>
+        </div>
+
+        <!-- Transcript Display -->
+        <div class="transcript-box">
+            <div class="transcript-text" id="transcript-text">
+                Click "Start Recording" to begin transcription...
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button onclick="clearTranscript()"
+                style="flex: 1; padding: 0.75rem; background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; cursor: pointer;">
+                Clear
+            </button>
+            <button onclick="saveTranscript()"
+                style="flex: 1; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600;">
+                Save
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar Panel -->
+    <div class="sidebar-panel">
+        <!-- Session Stats -->
+        <div class="stats-card">
+            <h3 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 1rem;">Session Stats</h3>
+            <div class="stat-item">
+                <span class="stat-label">Words</span>
+                <span class="stat-value" id="word-count">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Duration</span>
+                <span class="stat-value" id="duration">00:00</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Language</span>
+                <span class="stat-value" id="current-lang">English</span>
+            </div>
+        </div>
+
+        <!-- Recent Sessions -->
+        <div class="recent-sessions">
+            <h3 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 1rem;">Recent Sessions</h3>
+            <div id="recent-list">
+                <p style="color: #6b7280; font-size: 0.9375rem;">No recent sessions</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let isRecording = false;
+    let currentLanguage = 'en';
+    let wordCount = 0;
+    let startTime = null;
+    let durationInterval = null;
+
+    async function setLanguage(lang) {
+        currentLanguage = lang;
+        document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        const langNames = { en: 'English', es: 'Spanish', hi: 'Hindi' };
+        document.getElementById('current-lang').textContent = langNames[lang];
+
+        // Notify backend to switch language model
+        try {
+            await fetch('/api/set_language', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ language: lang })
+            });
+            console.log("Language switched to", lang);
+        } catch (e) {
+            console.error("Failed to switch language:", e);
+        }
+    }
+
+    function toggleRecording() {
+        const btn = document.getElementById('mic-btn');
+        const icon = document.getElementById('mic-icon');
+        const text = document.getElementById('mic-text');
+
+        if (!isRecording) {
+            // Start recording
+            startRecording();
+            btn.classList.add('recording');
+            icon.textContent = '⏹️';
+            text.textContent = 'Stop Recording';
+            isRecording = true;
+
+            startTime = Date.now();
+            updateDuration();
+            durationInterval = setInterval(updateDuration, 1000);
+        } else {
+            // Stop recording
+            stopRecording();
+            btn.classList.remove('recording');
+            icon.textContent = '🎤';
+            text.textContent = 'Start Recording';
+            isRecording = false;
+
+            clearInterval(durationInterval);
+        }
+    }
+
+    function updateDuration() {
+        if (!startTime) return;
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        document.getElementById('duration').textContent =
+            `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    async function startRecording() {
+        // Notify backend to set active user
+        try {
+            await fetch('/api/start_recording', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ language: currentLanguage })
+            });
+        } catch (e) {
+            console.error("Failed to start recording session:", e);
+        }
+
+        // Start polling for transcripts
+        window.isPolling = true;
+        pollTranscripts();
+
+        // Ensure backend listener is active (it's always active, but we can verify later)
+        console.log("Started polling for transcripts...");
+    }
+
+    function stopRecording() {
+        window.isPolling = false;
+        if (window.pollTimer) {
+            clearTimeout(window.pollTimer);
+        }
+    }
+
+    async function pollTranscripts() {
+        if (!window.isPolling) return;
+
+        try {
+            const response = await fetch('/api/get_live_transcripts');
+            const data = await response.json();
+
+            if (data.transcripts && data.transcripts.length > 0) {
+                // Get new transcripts we haven't seen yet
+                const newTranscripts = data.transcripts.filter(t => !window.seenTranscriptIds.has(t.id));
+
+                for (const t of newTranscripts) {
+                    window.seenTranscriptIds.add(t.id);
+                    appendTranscript(t.text);
+                }
+            }
+        } catch (e) {
+            console.error("Polling error:", e);
+        }
+
+        // Poll every 2 seconds
+        window.pollTimer = setTimeout(pollTranscripts, 2000);
+    }
+
+    // Initialize seen IDs set
+    window.seenTranscriptIds = new Set();
+
+    function appendTranscript(text) {
+        const transcriptBox = document.getElementById('transcript-text');
+        if (transcriptBox.textContent.includes('Click "Start Recording"')) {
+            transcriptBox.textContent = '';
+        }
+        transcriptBox.textContent += text + ' ';
+
+        // Update word count
+        wordCount = transcriptBox.textContent.trim().split(/\s+/).length;
+        document.getElementById('word-count').textContent = wordCount;
+    }
+
+    function clearTranscript() {
+        document.getElementById('transcript-text').textContent = 'Click "Start Recording" to begin transcription...';
+        wordCount = 0;
+        document.getElementById('word-count').textContent = '0';
+        document.getElementById('duration').textContent = '00:00';
+        window.seenTranscriptIds = new Set();
+    }
+
+    async function saveTranscript() {
+        const text = document.getElementById('transcript-text').textContent;
+        if (text.includes('Click "Start Recording"') || !text.trim()) {
+            alert('No transcript to save');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/save_transcript', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: text,
+                    language: currentLanguage,
+                    word_count: wordCount
+                })
+            });
+
+            if (response.ok) {
+                alert('Transcript saved successfully!');
+                loadRecentSessions();
+                clearTranscript();
+            }
+        } catch (error) {
+            console.error('Error saving transcript:', error);
+        }
+    }
+
+    async function loadRecentSessions() {
+        try {
+            const response = await fetch('/api/get_transcripts');
+            const data = await response.json();
+            const sessions = data.transcripts || [];
+
+            const container = document.getElementById('recent-list');
+            if (sessions.length === 0) {
+                container.innerHTML = '<p style="color: #6b7280; font-size: 0.9375rem;">No recent sessions</p>';
+                return;
+            }
+
+            container.innerHTML = sessions.slice(0, 5).map(session => `
+                <div class="session-item" onclick="loadSession(${session.id})">
+                    <div class="session-time">${new Date(session.timestamp).toLocaleString()}</div>
+                    <div class="session-preview">${session.text.substring(0, 50)}...</div>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('Error loading sessions:', error);
+        }
+    }
+
+    function loadSession(id) {
+        // Load specific session (implement as needed)
+        console.log('Loading session', id);
+    }
+
+    // Load recent sessions on page load
+    loadRecentSessions();
+</script>
+{% endblock %}

@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - LinguaVoice{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-container {
+        min-height: calc(100vh - 80px);
+        padding: 3rem 0;
+    }
+    
+    .analytics-header {
+        margin-bottom: 3rem;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .analytics-title {
+        font-size: 2.75rem;
+        margin-bottom: 0.75rem;
+        color: var(--navy-900);
+    }
+    
+    .analytics-subtitle {
+        font-size: 1.125rem;
+        color: var(--text-secondary);
+    }
+    
+    /* Overview Stats */
+    .overview-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.75rem;
+        margin-bottom: 3rem;
+        animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+    
+    .stat-card {
+        padding: 2.5rem 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: var(--gradient-accent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .stat-card:hover::before {
+        opacity: 1;
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-value {
+        font-size: 3.5rem;
+        font-weight: 900;
+        font-family: var(--font-display);
+        line-height: 1;
+        color: var(--navy-900);
+    }
+    
+    .stat-value.gradient {
+        background: var(--gradient-accent);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    /* Content Grid */
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        animation: fadeInUp 0.8s ease-out 0.4s both;
+    }
+    
+    .analytics-panel {
+        padding: 2.5rem;
+    }
+    
+    .panel-title {
+        font-size: 1.75rem;
+        margin-bottom: 2rem;
+        color: var(--navy-900);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .panel-icon {
+        font-size: 2rem;
+    }
+    
+    /* Language Breakdown */
+    .lang-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        background: var(--bg-primary);
+        border-radius: 1rem;
+        margin-bottom: 1.25rem;
+        transition: all 0.3s ease;
+    }
+    
+    .lang-item:hover {
+        background: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transform: translateX(6px);
+    }
+    
+    .lang-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .lang-flag {
+        font-size: 2.5rem;
+    }
+    
+    .lang-name {
+        font-weight: 700;
+        font-size: 1.125rem;
+        color: var(--navy-900);
+    }
+    
+    .lang-count {
+        font-size: 2rem;
+        font-weight: 900;
+        font-family: var(--font-display);
+        color: var(--emerald-600);
+    }
+    
+    /* Milestones */
+    .milestone {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 1.5rem;
+        background: var(--bg-primary);
+        border-radius: 1rem;
+        margin-bottom: 1.25rem;
+        transition: all 0.3s ease;
+    }
+    
+    .milestone:hover {
+        background: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    
+    .milestone-icon {
+        font-size: 2.5rem;
+        flex-shrink: 0;
+    }
+    
+    .milestone-content {
+        flex: 1;
+    }
+    
+    .milestone-title {
+        font-weight: 800;
+        color: var(--navy-900);
+        font-size: 1.0625rem;
+        margin-bottom: 0.375rem;
+    }
+    
+    .milestone-date {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+    
+    /* Chart Placeholder */
+    .chart-container {
+        height: 350px;
+        background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        border-radius: 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        font-style: italic;
+        border: 2px dashed var(--border-light);
+    }
+    
+    .full-width-panel {
+        grid-column: 1 / -1;
+    }
+    
+    @media (max-width: 968px) {
+        .analytics-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-container">
+    <div class="container">
+        <!-- Header -->
+        <div class="analytics-header">
+            <h1 class="analytics-title">Learning Analytics 📊</h1>
+            <p class="analytics-subtitle">Track your progress and celebrate your achievements</p>
+        </div>
+        
+        <!-- Overview Stats -->
+        <div class="overview-stats">
+            <div class="glass-card stat-card">
+                <div class="stat-label">Total Words</div>
+                <div class="stat-value gradient" id="total-words">0</div>
+            </div>
+            <div class="glass-card stat-card">
+                <div class="stat-label">This Week</div>
+                <div class="stat-value" style="color: #3B82F6;" id="week-words">0</div>
+            </div>
+            <div class="glass-card stat-card">
+                <div class="stat-label">Streak Days</div>
+                <div class="stat-value" style="color: #F59E0B;" id="streak">0 🔥</div>
+            </div>
+            <div class="glass-card stat-card">
+                <div class="stat-label">Total XP</div>
+                <div class="stat-value" style="color: var(--emerald-500);" id="total-xp">0</div>
+            </div>
+        </div>
+        
+        <!-- Analytics Grid -->
+        <div class="analytics-grid">
+            <!-- Language Breakdown -->
+            <div class="glass-card analytics-panel">
+                <h3 class="panel-title">
+                    <span class="panel-icon">🌍</span>
+                    Language Breakdown
+                </h3>
+                <div class="lang-item">
+                    <div class="lang-info">
+                        <div class="lang-flag">🇬🇧</div>
+                        <div class="lang-name">English</div>
+                    </div>
+                    <div class="lang-count" id="en-count">0</div>
+                </div>
+                <div class="lang-item">
+                    <div class="lang-info">
+                        <div class="lang-flag">🇪🇸</div>
+                        <div class="lang-name">Spanish</div>
+                    </div>
+                    <div class="lang-count" id="es-count">0</div>
+                </div>
+                <div class="lang-item">
+                    <div class="lang-info">
+                        <div class="lang-flag">🇮🇳</div>
+                        <div class="lang-name">Hindi</div>
+                    </div>
+                    <div class="lang-count" id="hi-count">0</div>
+                </div>
+            </div>
+            
+            <!-- Milestones -->
+            <div class="glass-card analytics-panel">
+                <h3 class="panel-title">
+                    <span class="panel-icon">🏆</span>
+                    Milestones
+                </h3>
+                <div class="milestone">
+                    <div class="milestone-icon">🌟</div>
+                    <div class="milestone-content">
+                        <div class="milestone-title">First Word Learned</div>
+                        <div class="milestone-date">The start of your journey</div>
+                    </div>
+                </div>
+                <div class="milestone">
+                    <div class="milestone-icon">💯</div>
+                    <div class="milestone-content">
+                        <div class="milestone-title">Century Club</div>
+                        <div class="milestone-date">Learn 100 words</div>
+                    </div>
+                </div>
+                <div class="milestone">
+                    <div class="milestone-icon">🔥</div>
+                    <div class="milestone-content">
+                        <div class="milestone-title">Week Streak</div>
+                        <div class="milestone-date">7 days in a row</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Progress Chart -->
+            <div class="glass-card analytics-panel full-width-panel">
+                <h3 class="panel-title">
+                    <span class="panel-icon">📈</span>
+                    Progress Over Time
+                </h3>
+                <div class="chart-container">
+                    Interactive charts coming soon! Track your daily, weekly, and monthly progress.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadAnalytics() {
+        try {
+            const [statsRes, vocabRes] = await Promise.all([
+                fetch('/api/stats'),
+                fetch('/api/get_my_spoken_words')
+            ]);
+            
+            const stats = (await statsRes.json()).stats || {};
+            const vocab = await vocabRes.json();
+            
+            // Update overview
+            document.getElementById('total-words').textContent = vocab.length;
+            document.getElementById('total-xp').textContent = stats.total_xp || 1240;
+            document.getElementById('streak').textContent = (stats.current_streak || 12) + ' 🔥';
+            document.getElementById('week-words').textContent = Math.floor(vocab.length * 0.3);
+            
+            // Update language breakdown
+            const enWords = vocab.filter(w => w.language === 'en').length;
+            const esWords = vocab.filter(w => w.language === 'es').length;
+            const hiWords = vocab.filter(w => w.language === 'hi').length;
+            
+            document.getElementById('en-count').textContent = enWords;
+            document.getElementById('es-count').textContent = esWords;
+            document.getElementById('hi-count').textContent = hiWords;
+            
+        } catch (error) {
+            console.error('Error loading analytics:', error);
+        }
+    }
+    
+    loadAnalytics();
+</script>
+{% endblock %}

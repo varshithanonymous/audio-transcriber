@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Offline Audio Transcription</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #111827;
+            --accent: #38bdf8;
+            --accent-2: #a855f7;
+            --text: #e5e7eb;
+            --muted: #94a3b8;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', Arial, sans-serif; background: radial-gradient(circle at 10% 20%, rgba(56,189,248,0.15), transparent 25%), radial-gradient(circle at 80% 0%, rgba(168,85,247,0.1), transparent 30%), var(--bg); color: var(--text); margin: 0; padding: 24px; }
+        h1 { margin: 0; }
+        a { color: var(--accent); }
+        .hero { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+        .hero-left { max-width: 640px; }
+        .badge { display: inline-block; padding: 6px 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; font-size: 12px; color: var(--muted); }
+        .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 4px 0; }
+        .btn { background: linear-gradient(120deg, var(--accent), var(--accent-2)); border: none; color: #0f172a; padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+        .btn.secondary { background: rgba(255,255,255,0.08); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
+        select, input { background: #0b1220; color: var(--text); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 14px; }
+        .card { background: linear-gradient(145deg, #0c1220, #0d1526); border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; padding: 14px; box-shadow: 0 15px 40px rgba(0,0,0,0.35); }
+        .card h3 { margin-top: 0; margin-bottom: 6px; }
+        #log { max-height: 420px; overflow-y: auto; }
+        .entry { margin-bottom: 10px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); }
+        .timestamp { font-size: 0.9em; color: var(--muted); }
+        .lang { font-weight: 700; margin-left: 5px; color: var(--accent); }
+        #pagination { margin-top: 10px; text-align: center; }
+        #pagination button { margin: 0 2px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--accent); background: transparent; color: var(--text); cursor: pointer; }
+        #pagination button.active { background: var(--accent); color: #0b1220; }
+        .pill { display: inline-block; padding: 6px 8px; background: rgba(56,189,248,0.15); color: var(--text); border-radius: 12px; margin: 3px; font-size: 13px; border: 1px solid rgba(56,189,248,0.3); }
+        .muted { color: var(--muted); font-size: 13px; }
+        .section-title { margin: 22px 0 8px; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-online { background: #10b981; }
+        .status-offline { background: #f43f5e; }
+        .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <div class="hero-left">
+            <div class="badge">Realtime • Offline-first • Multi-language</div>
+            <h1>🎤 Adaptive Voice Tutor</h1>
+            <p class="muted">Captures sentences every ~7s, builds your vocabulary across sessions, flags OOV words, and personalizes lessons. Works offline; validates words only when online.</p>
+            <div class="controls">
+                <button class="btn" onclick="startRecording()">Start Recording</button>
+                <button class="btn secondary" onclick="stopRecording()">Stop Recording</button>
+                <a class="btn secondary" href="/download/txt">Download TXT</a>
+                <a class="btn secondary" href="/download/csv">Download CSV</a>
+                <label class="muted">Filter
+                    <select id="langFilter" onchange="fetchData(1)">
+                        <option value="all">All</option>
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="hi">Hindi</option>
+                    </select>
+                </label>
+                <span id="onlineStatus" class="muted"><span class="status-dot status-offline"></span>Checking…</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="two-col">
+        <div class="card">
+            <h3>Realtime Transcripts (auto-refresh ~7s)</h3>
+            <div id="log"></div>
+            <div id="pagination"></div>
+        </div>
+        <div class="card">
+            <h3>Full Dataset (latest 100)</h3>
+            <div id="dataset" class="muted">Loading…</div>
+        </div>
+    </div>
+
+    <h2 class="section-title">Adaptive Tutor & Vocabulary</h2>
+    <div class="grid">
+        <div class="card">
+            <h3>New Words (rolling)</h3>
+            <div id="newWords" class="muted">Loading…</div>
+        </div>
+        <div class="card">
+            <h3>Vocabulary Bank</h3>
+            <div id="vocabList" class="muted">Loading…</div>
+        </div>
+        <div class="card">
+            <h3>Out-of-Vocabulary</h3>
+            <div id="oovList" class="muted">Loading…</div>
+        </div>
+        <div class="card">
+            <h3>Daily Challenge</h3>
+            <div id="challenge" class="muted">Loading…</div>
+        </div>
+        <div class="card">
+            <h3>Personalized Lesson</h3>
+            <div id="lesson" class="muted">Loading…</div>
+        </div>
+        <div class="card">
+            <h3>Learning Stats</h3>
+            <div id="stats" class="muted">Loading…</div>
+        </div>
+        <div class="card">
+            <h3>Validate Words</h3>
+            <div class="muted">New words list is below. Validation only runs online.</div>
+            <div id="validateWords" class="muted" style="margin:8px 0;">Loading…</div>
+            <input id="wordInput" placeholder="Pick or type a word" style="width: 100%; margin-bottom: 6px;">
+            <select id="wordLang" style="width: 100%; margin-bottom: 8px;">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="hi">Hindi</option>
+            </select>
+            <button class="btn" onclick="validateWord()">Validate</button>
+            <div id="validateResult" class="muted" style="margin-top:8px;"></div>
+        </div>
+    </div>
+
+    <script>
+        let lastTimestamp = null;
+        let currentPage = 1;
+        const pageSize = 20;
+        const transcriptIntervalMs = 7000; // new pull every ~7s as requested
+        const tutorIntervalMs = 10000;
+
+        async function fetchData(page) {
+            currentPage = page || currentPage;
+            let lang = document.getElementById("langFilter").value;
+            let res = await fetch(`/data?lang=${lang}&limit=${pageSize}`);
+            let data = await res.json();
+
+            let log = document.getElementById("log");
+            log.innerHTML = "";
+            data.reverse().forEach(item => {
+                let div = document.createElement("div");
+                div.className = "entry";
+                div.innerHTML = `<div class="timestamp">${item.timestamp} <span class="lang">[${item.language}]</span></div>
+                                 <div class="text">${item.text}</div>
+                                 ${item.audio_file ? `<audio controls src="/audio_clips/${item.audio_file}" style="margin-top:5px; width:300px;"></audio>` : ''}`;
+                log.appendChild(div);
+            });
+
+            // Auto scroll to newest entry
+            log.scrollTop = log.scrollHeight;
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const pagination = document.getElementById("pagination");
+            pagination.innerHTML = "";
+            for (let i = 1; i <= 5; i++) { // simple fixed 5-page example
+                const btn = document.createElement("button");
+                btn.innerText = i;
+                if (i === currentPage) btn.classList.add("active");
+                btn.onclick = () => fetchData(i);
+                pagination.appendChild(btn);
+            }
+        }
+
+        async function fetchDataset() {
+            const res = await fetch("/data?lang=all&limit=100");
+            const data = await res.json();
+            const box = document.getElementById("dataset");
+            box.innerHTML = data.map(item => `<div class="muted">${item.timestamp} [${item.language}] — ${item.text}</div>`).join("") || "Empty dataset.";
+        }
+
+        async function fetchOnlineStatus() {
+            const online = navigator.onLine;
+            const statusEl = document.getElementById("onlineStatus");
+            statusEl.innerHTML = `<span class="status-dot ${online ? 'status-online' : 'status-offline'}"></span>${online ? 'Online for validation' : 'Offline: validation paused'}`;
+            return online;
+        }
+
+        async function startRecording() {
+            await fetch("/record/start", {method: "POST"});
+        }
+
+        async function stopRecording() {
+            await fetch("/record/stop", {method: "POST"});
+        }
+
+        async function fetchVocabulary() {
+            const res = await fetch("/chatbot/vocabulary?limit=30");
+            const data = await res.json();
+            const box = document.getElementById("vocabList");
+            if (!data.items || !data.items.length) { box.innerText = "No words yet"; return; }
+            box.innerHTML = data.items.slice(0, 30).map(w => `<span class="pill">${w.word} (${w.language})</span>`).join("");
+        }
+
+        async function fetchNewWords() {
+            const res = await fetch("/chatbot/new_words?days=3");
+            const data = await res.json();
+            const box = document.getElementById("newWords");
+            const entries = [];
+            Object.keys(data.by_date || {}).forEach(day => {
+                entries.push(`<div><strong>${day}</strong>: ${(data.by_date[day] || []).map(w => w.word).join(", ")}</div>`);
+            });
+            box.innerHTML = entries.join("") || "No new words captured yet.";
+        }
+
+        async function fetchOOV() {
+            const res = await fetch("/chatbot/oov");
+            const data = await res.json();
+            const box = document.getElementById("oovList");
+            if (!data.items || !data.items.length) { box.innerText = "No OOV words detected"; return; }
+            box.innerHTML = data.items.slice(0, 15).map(w => `<div class="pill" title="Seen ${w.occurrences}x">${w.word} (${w.language})</div>`).join("");
+        }
+
+        async function fetchStats() {
+            const res = await fetch("/chatbot/stats");
+            const data = await res.json();
+            const box = document.getElementById("stats");
+            const stats = data.stats || {};
+            const lines = Object.keys(stats).map(lang => {
+                const s = stats[lang];
+                return `<div><strong>${lang}</strong>: level ${s.level || s[1] || "beginner"}, XP ${s.total_xp || s.xp || 0}, streak ${s.streak_days || s.streak || 0}d</div>`;
+            });
+            box.innerHTML = lines.join("") || "No stats yet.";
+        }
+
+        async function fetchChallenge() {
+            const res = await fetch("/chatbot/daily_challenge");
+            const data = await res.json();
+            const c = data.challenge || {};
+            document.getElementById("challenge").innerHTML = `<div><strong>${c.title || "Challenge"}</strong></div><div>Goal: ${c.target || "-"} | XP: ${c.xp_reward || 0}</div>`;
+        }
+
+        async function fetchLesson() {
+            const res = await fetch("/chatbot/lesson");
+            const data = await res.json();
+            const lesson = data.lesson || {};
+            document.getElementById("lesson").innerHTML = `<div><strong>${lesson.title || "Lesson"}</strong></div><div>${lesson.adaptive_note || lesson.level || ""}</div>`;
+        }
+
+        async function populateValidateList() {
+            const res = await fetch("/chatbot/new_words?days=7");
+            const data = await res.json();
+            const box = document.getElementById("validateWords");
+            const words = [];
+            Object.values(data.by_date || {}).forEach(list => list.forEach(w => words.push(w)));
+            box.innerHTML = words.slice(0, 30).map(w => `<span class="pill" onclick="document.getElementById('wordInput').value='${w.word}'; document.getElementById('wordLang').value='${w.language}';">${w.word} (${w.language})</span>`).join("") || "No new words yet.";
+        }
+
+        async function validateWord() {
+            const online = await fetchOnlineStatus();
+            const resultEl = document.getElementById("validateResult");
+            if (!online) {
+                resultEl.innerText = "Offline: will validate when back online.";
+                return;
+            }
+            const word = document.getElementById("wordInput").value.trim();
+            const lang = document.getElementById("wordLang").value;
+            if (!word) { resultEl.innerText = "Enter a word first."; return; }
+            const res = await fetch(`/validate_word?word=${encodeURIComponent(word)}&lang=${lang}`);
+            const data = await res.json();
+            resultEl.innerText = data.is_valid ? `Valid: ${data.meaning || 'meaning fetched'}` : "Not validated or unknown.";
+        }
+
+        function refreshTutorPanels() {
+            fetchVocabulary();
+            fetchNewWords();
+            fetchOOV();
+            fetchStats();
+            fetchChallenge();
+            fetchLesson();
+            populateValidateList();
+        }
+
+        setInterval(() => {
+            fetchData();
+            fetchDataset();
+        }, transcriptIntervalMs);
+
+        setInterval(() => {
+            refreshTutorPanels();
+            fetchOnlineStatus();
+        }, tutorIntervalMs);
+
+        // Initial load
+        fetchData(1);
+        fetchDataset();
+        refreshTutorPanels();
+        fetchOnlineStatus();
+    </script>
+</body>
+</html>

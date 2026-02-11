@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Update Word Meanings - LinguaVoice</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 3rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+        p {
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        }
+        .btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f1f5f9;
+            border-radius: 0.75rem;
+            display: none;
+        }
+        .success { color: #16a34a; font-weight: 600; }
+        .error { color: #dc2626; font-weight: 600; }
+        .progress { color: #3b82f6; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Update Word Meanings</h1>
+        <p>Use Gemini AI to fetch meanings for all your vocabulary words</p>
+        
+        <button id="updateButton" class="btn" onclick="updateMeanings()">
+            Fetch All Meanings
+        </button>
+        
+        <div id="status" class="status"></div>
+    </div>
+    
+    <script>
+        async function updateMeanings() {
+            const btn = document.getElementById('updateButton');
+            const status = document.getElementById('status');
+            
+            btn.disabled = true;
+            status.style.display = 'block';
+            status.innerHTML = '<p class="progress">⏳ Fetching meanings from Gemini AI...</p>';
+            
+            try {
+                const response = await fetch('/api/update_all_meanings');
+                const data = await response.json();
+                
+                if (data.success) {
+                    status.innerHTML = `
+                        <p class="success">✅ Success!</p>
+                        <p>Updated: ${data.updated} words</p>
+                        <p>Total: ${data.total} words</p>
+                        <p><a href="/vocabulary">Go to Vocabulary</a></p>
+                    `;
+                } else {
+                    status.innerHTML = `<p class="error">❌ Error: ${data.error}</p>`;
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                status.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

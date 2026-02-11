@@ -1,0 +1,786 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Adventure Map - LinguaVoice{% endblock %}
+{% block page_title %} {% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Full Page Game Mode Override */
+    .main-content {
+        background: #80c056 !important; /* Grassy Green Base */
+        padding: 0 !important;
+        overflow-x: hidden;
+        position: relative;
+    }
+    
+    /* Simulate Grassy Pattern */
+    .game-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #92d050;
+        background-image: 
+            radial-gradient(#a3da61 15%, transparent 16%),
+            radial-gradient(#80c056 15%, transparent 16%);
+        background-size: 60px 60px;
+        background-position: 0 0, 30px 30px;
+        opacity: 1;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    /* "Path" Background - A lighter winding river/road effect beneath the nodes */
+    .path-texture {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 600px;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
+        filter: blur(20px);
+        z-index: 0;
+    }
+
+    .learning-container {
+        position: relative;
+        max-width: 500px; /* Narrower for mobile game feel */
+        margin: 0 auto;
+        padding-top: 120px; /* Space for top HUD */
+        padding-bottom: 100px;
+        z-index: 2;
+        min-height: 100vh;
+    }
+
+    /* Top HUD (Heads Up Display) like the game */
+    .game-hud {
+        position: fixed;
+        top: 80px; /* Below sidebar header if sticky, or use 20px */
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 600px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        z-index: 100;
+        pointer-events: none; /* Let clicks pass through to map */
+    }
+
+    .hud-panel {
+        background: linear-gradient(to bottom, #ff9eb4, #ff5e89);
+        border: 3px solid white;
+        border-radius: 20px;
+        padding: 5px 15px;
+        color: #93193e;
+        font-weight: 900;
+        font-family: 'Comic Sans MS', 'Bubblegum Sans', cursive, sans-serif;
+        box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        pointer-events: auto;
+    }
+
+    .hud-icon {
+        font-size: 1.5rem;
+        filter: drop-shadow(0 2px 0 rgba(0,0,0,0.2));
+    }
+
+    /* Level Nodes - The "Candies" */
+    .level-row {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 70px;
+        position: relative;
+    }
+    
+    /* Zig Zag Offsets */
+    .level-row:nth-child(odd) { transform: translateX(-80px); }
+    .level-row:nth-child(even) { transform: translateX(80px); }
+
+    .level-button {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        position: relative;
+        cursor: pointer;
+        transition: transform 0.1s;
+        
+        /* Default "Jelly" Look */
+        background: radial-gradient(circle at 30% 30%, #ffd1dc, #ff9eb4);
+        border: 4px solid white;
+        box-shadow: 
+            0 8px 0 #d46fa5, /* 3D bottom */
+            0 15px 10px rgba(0,0,0,0.2); /* Drop shadow */
+        
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        
+        font-family: 'Arial Rounded MT Bold', 'Verdana', sans-serif;
+        font-size: 2rem;
+        font-weight: 900;
+        color: white;
+        text-shadow: 0 2px 0 rgba(0,0,0,0.2);
+        z-index: 5;
+    }
+
+    .level-button:active {
+        transform: translateY(4px);
+        box-shadow: 
+            0 4px 0 #d46fa5,
+            0 5px 5px rgba(0,0,0,0.2);
+    }
+
+    /* Color Variations */
+    .level-row:nth-child(4n+1) .level-button { /* Pink */
+        background: radial-gradient(circle at 30% 30%, #ff7ea5, #e03e70);
+        box-shadow: 0 8px 0 #a81c45, 0 15px 10px rgba(0,0,0,0.2);
+    }
+    
+    .level-row:nth-child(4n+2) .level-button { /* Blue */
+        background: radial-gradient(circle at 30% 30%, #6dd5fa, #2980b9);
+        box-shadow: 0 8px 0 #1c5a85, 0 15px 10px rgba(0,0,0,0.2);
+    }
+    
+    .level-row:nth-child(4n+3) .level-button { /* Orange */
+        background: radial-gradient(circle at 30% 30%, #ffc66d, #f39c12);
+        box-shadow: 0 8px 0 #b36e05, 0 15px 10px rgba(0,0,0,0.2);
+    }
+    
+    .level-row:nth-child(4n+4) .level-button { /* Purple */
+        background: radial-gradient(circle at 30% 30%, #c471ed, #8e44ad);
+        box-shadow: 0 8px 0 #5e2a75, 0 15px 10px rgba(0,0,0,0.2);
+    }
+
+    /* Status Overrides */
+    .level-button.locked {
+        background: #cbd5e1;
+        background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.05) 10px, rgba(0,0,0,0.05) 20px);
+        box-shadow: 0 8px 0 #94a3b8, 0 15px 10px rgba(0,0,0,0.1);
+        color: #64748b;
+        cursor: not-allowed;
+        opacity: 0.8;
+    }
+    
+    .level-button.current {
+        animation: bounce-pulse 2s infinite;
+        z-index: 10;
+    }
+    
+    /* Current Level Crown/Marker */
+    .current-marker {
+        position: absolute;
+        top: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 40px;
+        background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path fill="%23FFD700" d="M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z"/></svg>') no-repeat center;
+        filter: drop-shadow(0 4px 2px rgba(0,0,0,0.3));
+        animation: float 2s ease-in-out infinite;
+    }
+    
+    /* Stars below level */
+    .level-stars-container {
+        position: absolute;
+        bottom: -25px;
+        width: 100px;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        gap: 3px;
+        pointer-events: none;
+    }
+    
+    .game-star {
+        font-size: 14px;
+        color: #ffd700;
+        text-shadow: 0 2px 0 #b38f00;
+    }
+    
+    .game-star.empty {
+        color: #1f2937;
+        opacity: 0.2;
+        text-shadow: none;
+    }
+
+    /* Dashed Path Connector */
+    .path-connector {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+    }
+    
+    .path-dash {
+        fill: none;
+        stroke: white;
+        stroke-width: 8;
+        stroke-dasharray: 15, 15;
+        stroke-linecap: round;
+        filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+    }
+
+    @keyframes bounce-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translate(-50%, 0); }
+        50% { transform: translate(-50%, -10px); }
+    }
+    
+    /* Area Labels ("Lemonade Lake") */
+    .area-label {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%) rotate(-5deg);
+        background: #ffec99;
+        border: 2px solid #fff;
+        padding: 5px 20px;
+        color: #d97706;
+        font-family: 'Comic Sans MS', cursive;
+        font-weight: bold;
+        font-size: 1.2rem;
+        border-radius: 5px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* Mascot & Speech Bubble */
+    .mascot-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        pointer-events: none; /* Let clicks pass through unless on bubble */
+    }
+
+    .mascot-image {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 4px solid white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        background: white;
+        overflow: hidden;
+        pointer-events: auto;
+        cursor: pointer;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .mascot-image:hover {
+        transform: scale(1.1) rotate(-5deg);
+    }
+
+    .mascot-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .speech-bubble {
+        background: white;
+        padding: 15px 20px;
+        border-radius: 20px;
+        border-bottom-right-radius: 5px;
+        margin-bottom: 10px;
+        margin-right: 40px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        font-family: 'Comic Sans MS', cursive, sans-serif;
+        color: #333;
+        font-size: 1rem;
+        line-height: 1.4;
+        max-width: 250px;
+        position: relative;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: pop-in 0.5s forwards 0.5s;
+        pointer-events: auto;
+    }
+
+    @keyframes pop-in {
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 3D Card & Modal Styles */
+    .level-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(5px);
+        z-index: 900;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    
+    .level-card-3d {
+        width: 320px;
+        height: 400px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 20px;
+        position: relative;
+        transform: scale(0.8) translateY(50px);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 
+            0 20px 50px rgba(0,0,0,0.3),
+            0 0 0 1px rgba(255,255,255,0.5) inset;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .level-modal-overlay.active {
+        display: flex; /* Flex to center */
+        opacity: 1;
+    }
+    
+    .level-modal-overlay.active .level-card-3d {
+        transform: scale(1) translateY(0);
+    }
+    
+    .card-header-bg {
+        height: 120px;
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    
+    .card-level-bubble {
+        width: 80px;
+        height: 80px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 900;
+        color: #4f46e5;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        border: 4px solid #e0e7ff;
+        margin-top: 40px; /* Push down to overlap content */
+        z-index: 10;
+    }
+    
+    .card-content {
+        flex: 1;
+        padding: 40px 20px 20px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .card-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1e293b;
+    }
+    
+    .card-desc {
+        color: #64748b;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    
+    .card-stats {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin: 10px 0;
+    }
+    
+    .stat-pill {
+        background: #f1f5f9;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #475569;
+    }
+    
+    .play-btn-large {
+        background: #22c55e;
+        color: white;
+        border: none;
+        padding: 15px;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        width: 100%;
+        margin-top: auto;
+        box-shadow: 0 4px 0 #15803d;
+        transition: transform 0.1s;
+    }
+    
+    .play-btn-large:active {
+        transform: translateY(2px);
+        box-shadow: 0 2px 0 #15803d;
+    }
+    
+    .close-card {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 30px;
+        height: 30px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: white;
+        font-weight: bold;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="game-background"></div>
+<div class="path-texture"></div>
+
+<!-- Modal Overlay -->
+<div class="level-modal-overlay" id="level-modal" onclick="closeLevelCard(event)">
+    <div class="level-card-3d" onclick="event.stopPropagation()">
+        <div class="close-card" onclick="closeLevelCard()">✕</div>
+        <div class="card-header-bg" id="card-header">
+             <div class="card-level-bubble" id="card-level-num">1</div>
+        </div>
+        <div class="card-content">
+            <div class="card-title" id="card-title">Basics Zone</div>
+            <div class="card-desc" id="card-desc">Master the fundamental greetings and introductions.</div>
+            <div class="card-stats">
+                <span class="stat-pill">🍬 50 XP</span>
+                <span class="stat-pill">⏱️ 3 Mins</span>
+            </div>
+            <button class="play-btn-large" id="card-play-btn" onclick="startLevel()">PLAY LEVEL ▶</button>
+        </div>
+    </div>
+</div>
+
+<!-- Language Selection Modal -->
+<div class="level-modal-overlay" id="lang-modal" style="z-index: 1000;">
+    <div class="level-card-3d" style="height: auto; padding-bottom: 30px;">
+        <div class="card-header-bg" style="background: linear-gradient(135deg, #10b981, #34d399); height: 100px;">
+             <div class="card-level-bubble" style="color: #059669; border-color: #d1fae5; margin-top: 20px;">🌍</div>
+        </div>
+        <div class="card-content">
+            <div class="card-title">Choose Your Path</div>
+            <div class="card-desc">Which language do you want to master?</div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+                <button class="answer-btn" onclick="selectLanguage('es')" style="background: #fef3c7; border-color: #fcd34d;">
+                    <span style="font-size: 2rem;">🇪🇸</span><br>Spanish
+                </button>
+                <button class="answer-btn" onclick="selectLanguage('fr')" style="background: #e0f2fe; border-color: #bae6fd;">
+                    <span style="font-size: 2rem;">🇫🇷</span><br>French
+                </button>
+                <button class="answer-btn" onclick="selectLanguage('de')" style="background: #fce7f3; border-color: #fbcfe8;">
+                    <span style="font-size: 2rem;">🇩🇪</span><br>German
+                </button>
+                <button class="answer-btn" onclick="selectLanguage('hi')" style="background: #ffedd5; border-color: #fed7aa;">
+                    <span style="font-size: 2rem;">🇮🇳</span><br>Hindi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HUD -->
+<div class="game-hud">
+    <div class="hud-panel">
+        <span class="hud-icon">❤️</span> 5
+    </div>
+    <div class="hud-panel" style="background: linear-gradient(to bottom, #ffd700, #f59e0b); color: #78350f;">
+        <span class="hud-icon">🥇</span> Level {{ current_level }}
+    </div>
+    <div class="hud-panel" style="background: linear-gradient(to bottom, #60a5fa, #2563eb); color: white;">
+        <span class="hud-icon">⭐</span> {{ completed_levels|length * 3 }}
+    </div>
+</div>
+
+<!-- Serp Hawk Mascot -->
+<div class="mascot-container">
+    <div class="speech-bubble" id="mascot-speech">
+        Click a level to see details! 🦅
+    </div>
+    <div class="mascot-image" onclick="pokeMascot()">
+        <!-- Use the found image path -->
+        <img src="{{ url_for('static', filename='images/serphawk_logo.jpg') }}" alt="Serp Hawk">
+    </div>
+</div>
+
+<div class="learning-container" id="game-map">
+    <svg class="path-connector" id="svg-connector"></svg>
+    <div id="levels-container"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const TOTAL_LEVELS = 100;
+    const COMPLETED_LEVELS = {{ completed_levels|tojson }};
+    const CURRENT_LEVEL = {{ current_level }};
+    const USER_NAME = "{{ user_name }}";
+    const TARGET_LANG = "{{ target_language }}"; // Can be 'None' string if python None
+    let selectedLevelId = null;
+    
+    // Init Language Check
+    window.addEventListener('load', () => {
+        if (!TARGET_LANG || TARGET_LANG === 'None' || TARGET_LANG === '') {
+            document.getElementById('lang-modal').style.display = 'flex';
+            setTimeout(() => document.getElementById('lang-modal').classList.add('active'), 100);
+        }
+    });
+
+    function selectLanguage(lang) {
+        fetch('/api/set_target_language', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ language: lang })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    }
+
+    // Dynamic messages based on level ranges
+    const TOPICS = [
+        { max: 10, title: "Basics", msg: "laying the foundation! Perfect for starters." },
+        { max: 20, title: "Greetings", msg: "learning how to say hello and much more!" },
+        { max: 30, title: "Travel", msg: "getting ready for your next adventure!" },
+        { max: 40, title: "Dining", msg: "learning all about food and ordering." },
+        { max: 50, title: "Hobbies", msg: "talking about what you love to do!" },
+        { max: 60, title: "Social", msg: "making new friends and connections." },
+        { max: 70, title: "Work", msg: "mastering professional business terms." },
+        { max: 80, title: "Culture", msg: "diving deep into art and history." },
+        { max: 90, title: "Debate", msg: "expressing complex opinions." },
+        { max: 100, title: "Mastery", msg: "reaching native-like fluency! You are a legend." }
+    ];
+
+    function getLevelContext(level) {
+        const topic = TOPICS.find(t => level <= t.max) || TOPICS[TOPICS.length-1];
+        return {
+            title: topic.title,
+            description: `Level ${level} means you are onto ${topic.title}, ${topic.msg}`
+        };
+    }
+
+    function updateMascotSpeech(text) {
+        const bubble = document.getElementById('mascot-speech');
+        bubble.style.opacity = '0';
+        bubble.style.transform = 'translateY(10px)';
+        
+        setTimeout(() => {
+            bubble.innerHTML = text;
+            bubble.style.opacity = '1';
+            bubble.style.transform = 'translateY(0)';
+        }, 200);
+    }
+
+    function pokeMascot() {
+        updateMascotSpeech("Click a level node to open its card! 🃏");
+    }
+
+    // New Card Logic
+    function openLevelCard(id, status) {
+        if (status === 'locked') {
+            updateMascotSpeech("That level is locked! 🔒 Finish previous levels first.");
+            return;
+        }
+        
+        selectedLevelId = id;
+        const ctx = getLevelContext(id);
+        
+        // Populate Modal
+        document.getElementById('card-level-num').innerText = id;
+        document.getElementById('card-title').innerText = ctx.title;
+        document.getElementById('card-desc').innerText = `Learn ${ctx.title} vocabulary and grammar. ${id * 10} XP Reward.`;
+        
+        // Color based on index
+        const colors = [
+            'linear-gradient(135deg, #f472b6, #db2777)', // Pink
+            'linear-gradient(135deg, #60a5fa, #2563eb)', // Blue
+            'linear-gradient(135deg, #fbbf24, #d97706)', // Orange
+            'linear-gradient(135deg, #a78bfa, #7c3aed)'  // Purple
+        ];
+        document.getElementById('card-header').style.background = colors[(id-1)%4];
+        
+        // Show Modal
+        document.getElementById('level-modal').style.display = 'flex';
+        // Force reflow for transition
+        setTimeout(() => document.getElementById('level-modal').classList.add('active'), 10);
+        
+        updateMascotSpeech("Are you ready to play?");
+    }
+    
+    function closeLevelCard(e) {
+        if (e && e.target !== e.currentTarget) return; // ignore bubbled clicks
+        document.getElementById('level-modal').classList.remove('active');
+        setTimeout(() => {
+             document.getElementById('level-modal').style.display = 'none';
+        }, 300);
+    }
+    
+    function startLevel() {
+        if (!selectedLevelId) return;
+        window.location.href = `/learning/level/${selectedLevelId}/flashcards`;
+    }
+
+    function initBackground() {
+        const bg = document.querySelector('.game-background');
+        // Create 20 floating clouds/shapes
+        bg.innerHTML = '';
+        for(let i=0; i<20; i++) {
+            const div = document.createElement('div');
+            div.className = 'bg-shape';
+            const size = Math.random() * 60 + 20;
+            div.style.width = `${size}px`;
+            div.style.height = `${size}px`;
+            div.style.left = `${Math.random() * 100}%`;
+            div.style.top = `${Math.random() * 100 + 10}vh`; // Start below
+            div.style.animationDuration = `${Math.random() * 15 + 10}s`;
+            div.style.animationDelay = `-${Math.random() * 20}s`;
+            bg.appendChild(div);
+        }
+    }
+
+    function renderGameMap() {
+        const container = document.getElementById('levels-container');
+        let html = '';
+        
+        for (let i = 1; i <= TOTAL_LEVELS; i++) {
+            let status = 'locked';
+            if (COMPLETED_LEVELS.includes(i)) status = 'completed';
+            else if (i === CURRENT_LEVEL) status = 'current';
+            
+            // Add label every 20 levels
+            if ((i-1) % 20 === 0 && i < 100) {
+                 const rangeName = getLevelContext(i+1).title + " Zone";
+                 html += `<div class="level-row" style="height: 0; margin: 0;"><div class="area-label" style="top: -40px;">${rangeName}</div></div>`;
+            }
+
+            // Note: Transform is now in CSS, but we can't hover-transform easily if we rely on parent layout.
+            // Using a wrapper around button might be better if we want complex animations.
+            // But for now, standard row alignment with center button works.
+            
+            html += `
+                <div class="level-row">
+                    <div class="level-button ${status}" id="node-${i}" 
+                         onclick="openLevelCard(${i}, '${status}')"
+                         onmouseenter="handleNodeHover(${i}, '${status}')"
+                        >
+                        ${i}
+                        ${status === 'current' ? '<div class="current-marker"></div>' : ''}
+                        
+                        <div class="level-stars-container">
+                            ${getStars(status)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        container.innerHTML = html;
+        
+        initBackground();
+        setTimeout(drawCandyPath, 100);
+        setTimeout(() => {
+            const current = document.getElementById(`node-${CURRENT_LEVEL}`);
+            if (current) current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Initial Mascot Speech
+            const ctx = getLevelContext(CURRENT_LEVEL);
+            updateMascotSpeech(`You are on Level ${CURRENT_LEVEL}! This level means you are ${ctx.msg}`);
+        }, 500);
+    }
+    
+    function handleNodeHover(level, status) {
+        if (status === 'locked') {
+            // updateMascotSpeech(`Level ${level} is locked! Complete previous levels to reach the ${getLevelContext(level).title} zone.`);
+        } else {
+             // const ctx = getLevelContext(level);
+             // updateMascotSpeech(`Level ${level}: ${ctx.title}. ${ctx.msg}`);
+        }
+    }
+    
+    function resetMascot() {
+        // Optional: Reset to current level message after delay
+        // setTimeout(() => {
+        //    const ctx = getLevelContext(CURRENT_LEVEL);
+        //    updateMascotSpeech(`You are on Level ${CURRENT_LEVEL}! This level means you are ${ctx.msg}`);
+        // }, 3000);
+    }
+    
+    function getStars(status) {
+        if (status === 'completed') {
+            return '<span class="game-star">★</span><span class="game-star">★</span><span class="game-star">★</span>';
+        }
+        return '<span class="game-star empty">★</span><span class="game-star empty">★</span><span class="game-star empty">★</span>';
+    }
+    
+    function drawCandyPath() {
+        const svg = document.getElementById('svg-connector');
+        const container = document.getElementById('game-map');
+        const rect = container.getBoundingClientRect();
+        
+        svg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
+        
+        let pathD = '';
+        
+        for (let i = 1; i < TOTAL_LEVELS; i++) {
+            const curr = document.getElementById(`node-${i}`);
+            const next = document.getElementById(`node-${i+1}`);
+            
+            if (curr && next) {
+                const r1 = curr.getBoundingClientRect();
+                const r2 = next.getBoundingClientRect();
+                const cRect = container.getBoundingClientRect();
+                
+                const x1 = r1.left + r1.width/2 - cRect.left;
+                const y1 = r1.top + r1.height/2 - cRect.top;
+                const x2 = r2.left + r2.width/2 - cRect.left;
+                const y2 = r2.top + r2.height/2 - cRect.top;
+                
+                const cpY = (y1 + y2) / 2;
+                
+                if (i === 1) pathD += `M ${x1} ${y1} `;
+                pathD += `C ${x1} ${cpY}, ${x2} ${cpY}, ${x2} ${y2} `;
+            }
+        }
+        
+        svg.innerHTML = `<path d="${pathD}" class="path-dash" />`;
+    }
+    
+    window.addEventListener('resize', drawCandyPath);
+    renderGameMap();
+</script>
+{% endblock %}

@@ -1,0 +1,434 @@
+{% extends "base_classic.html" %}
+
+{% block title %}Dashboard - LinguaVoice{% endblock %}
+{% block page_title %}Welcome Back, {{ user_name }}{% endblock %}
+{% block page_subtitle %}Continue your language learning journey{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--space-6);
+        margin-bottom: var(--space-8);
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+        border-left: 4px solid;
+        box-shadow: var(--shadow-md);
+        transition: all var(--transition-base);
+        animation: fadeIn 0.5s ease-out backwards;
+    }
+    
+    .stat-card:nth-child(1) {
+        border-color: var(--color-primary);
+        animation-delay: 0.1s;
+    }
+    
+    .stat-card:nth-child(2) {
+        border-color: var(--color-accent);
+        animation-delay: 0.2s;
+    }
+    
+    .stat-card:nth-child(3) {
+        border-color: var(--color-secondary);
+        animation-delay: 0.3s;
+    }
+    
+    .stat-card:nth-child(4) {
+        border-color: var(--color-success);
+        animation-delay: 0.4s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: var(--space-4);
+    }
+    
+    .stat-label {
+        font-size: var(--text-sm);
+        color: var(--color-charcoal);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+    }
+    
+    .stat-icon {
+        font-size: var(--text-3xl);
+    }
+    
+    .stat-value {
+        font-family: var(--font-serif);
+        font-size: var(--text-4xl);
+        font-weight: 700;
+        color: var(--color-primary);
+        margin-bottom: var(--space-2);
+    }
+    
+    .stat-description {
+        font-size: var(--text-sm);
+        color: var(--color-charcoal);
+    }
+    
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--space-6);
+        margin-bottom: var(--space-8);
+    }
+    
+    .action-card {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        border-radius: var(--radius-lg);
+        padding: var(--space-8);
+        color: white;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 200px;
+        position: relative;
+        overflow: hidden;
+        transition: all var(--transition-base);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .action-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        transform: translate(40%, -40%);
+    }
+    
+    .action-card:nth-child(2) {
+        background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+    }
+    
+    .action-card:nth-child(3) {
+        background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%);
+    }
+    
+    .action-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-xl);
+    }
+    
+    .action-card-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .action-icon {
+        font-size: 3rem;
+        margin-bottom: var(--space-4);
+        display: block;
+    }
+    
+    .action-title {
+        font-family: var(--font-serif);
+        font-size: var(--text-2xl);
+        font-weight: 700;
+        margin-bottom: var(--space-2);
+        color: white;
+    }
+    
+    .action-description {
+        font-size: var(--text-base);
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.5;
+        margin-bottom: var(--space-6);
+    }
+    
+    .action-button {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-3) var(--space-6);
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        border-radius: var(--radius-md);
+        color: white;
+        font-weight: 600;
+        transition: all var(--transition-base);
+    }
+    
+    .action-button:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateX(5px);
+    }
+    
+    .recent-activity {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .activity-header {
+        border-bottom: 2px solid var(--color-parchment);
+        padding-bottom: var(--space-4);
+        margin-bottom: var(--space-6);
+    }
+    
+    .activity-title {
+        font-family: var(--font-serif);
+        font-size: var(--text-2xl);
+        color: var(--color-primary);
+        margin-bottom: var(--space-2);
+    }
+    
+    .activity-subtitle {
+        font-size: var(--text-sm);
+        color: var(--color-charcoal);
+    }
+    
+    .activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+    
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        padding: var(--space-4);
+        background: var(--color-parchment);
+        border-radius: var(--radius-md);
+        border-left: 3px solid var(--color-accent);
+        transition: all var(--transition-base);
+    }
+    
+    .activity-item:hover {
+        background: var(--color-gray-200);
+        transform: translateX(5px);
+    }
+    
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--text-xl);
+    }
+    
+    .activity-content {
+        flex: 1;
+    }
+    
+    .activity-text {
+        color: var(--color-ink);
+        font-weight: 500;
+        margin-bottom: 2px;
+    }
+    
+    .activity-time {
+        font-size: var(--text-xs);
+        color: var(--color-charcoal);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Total XP</span>
+            <span class="stat-icon">⭐</span>
+        </div>
+        <div class="stat-value" id="total-xp">0</div>
+        <div class="stat-description">Experience points earned</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Vocabulary</span>
+            <span class="stat-icon">📚</span>
+        </div>
+        <div class="stat-value" id="word-count">0</div>
+        <div class="stat-description">Words learned</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Current Streak</span>
+            <span class="stat-icon">🔥</span>
+        </div>
+        <div class="stat-value" id="streak">0</div>
+        <div class="stat-description">Days in a row</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Transcripts</span>
+            <span class="stat-icon">🎙️</span>
+        </div>
+        <div class="stat-value" id="transcript-count">0</div>
+        <div class="stat-description">Total transcriptions</div>
+    </div>
+</div>
+
+<div class="quick-actions">
+    <a href="/transcription" class="action-card">
+        <div class="action-card-content">
+            <span class="action-icon">🎙️</span>
+            <h3 class="action-title">Start Speaking</h3>
+            <p class="action-description">
+                Begin a new transcription session and practice your language skills in real-time.
+            </p>
+            <div class="action-button">
+                Start Now →
+            </div>
+        </div>
+    </a>
+    
+    <a href="/vocabulary" class="action-card">
+        <div class="action-card-content">
+            <span class="action-icon">📚</span>
+            <h3 class="action-title">Review Vocabulary</h3>
+            <p class="action-description">
+                Explore your personal vocabulary bank with definitions, examples, and more.
+            </p>
+            <div class="action-button">
+                Open Vocabulary →
+            </div>
+        </div>
+    </a>
+    
+    <a href="/learning" class="action-card">
+        <div class="action-card-content">
+            <span class="action-icon">✨</span>
+            <h3 class="action-title">Learning Hub</h3>
+            <p class="action-description">
+                Access personalized lessons and AI-powered recommendations for improvement.
+            </p>
+            <div class="action-button">
+                Start Learning →
+            </div>
+        </div>
+    </a>
+</div>
+
+<div class="recent-activity">
+    <div class="activity-header">
+        <h2 class="activity-title">Recent Activity</h2>
+        <p class="activity-subtitle">Your latest learning milestones</p>
+    </div>
+    
+    <div class="activity-list" id="activity-list">
+        <div class="activity-item">
+            <div class="activity-icon">📊</div>
+            <div class="activity-content">
+                <div class="activity-text">Loading your recent activity...</div>
+                <div class="activity-time">Please wait</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadDashboardStats() {
+        try {
+            const res = await fetch('/api/stats');
+            const data = await res.json();
+            const stats = data.stats || {};
+            
+            // Update stat cards
+            document.getElementById('total-xp').textContent = stats.total_xp || 0;
+            document.getElementById('word-count').textContent = stats.total_words || 0;
+            document.getElementById('streak').textContent = stats.current_streak || 0;
+            document.getElementById('transcript-count').textContent = stats.total_transcripts || 0;
+            
+            // Update recent activity
+            updateRecentActivity(stats);
+        } catch (error) {
+            console.error('Error loading dashboard stats:', error);
+        }
+    }
+    
+    function updateRecentActivity(stats) {
+        const activityList = document.getElementById('activity-list');
+        const activities = [];
+        
+        if (stats.total_transcripts > 0) {
+            activities.push({
+                icon: '🎙️',
+                text: `Completed ${stats.total_transcripts} transcription sessions`,
+                time: 'Today'
+            });
+        }
+        
+        if (stats.total_words > 0) {
+            activities.push({
+                icon: '📚',
+                text: `Learned ${stats.total_words} new words`,
+                time: 'This week'
+            });
+        }
+        
+        if (stats.current_streak > 0) {
+            activities.push({
+                icon: '🔥',
+                text: `Maintained ${stats.current_streak} day learning streak`,
+                time: 'Active'
+            });
+        }
+        
+        if (stats.total_xp > 0) {
+            activities.push({
+                icon: '⭐',
+                text: `Earned ${stats.total_xp} XP points`,
+                time: 'All time'
+            });
+        }
+        
+        if (activities.length === 0) {
+            activityList.innerHTML = `
+                <div class="activity-item">
+                    <div class="activity-icon">✨</div>
+                    <div class="activity-content">
+                        <div class="activity-text">Start your first transcription session!</div>
+                        <div class="activity-time">Begin your learning journey</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            activityList.innerHTML = activities.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-icon">${activity.icon}</div>
+                    <div class="activity-content">
+                        <div class="activity-text">${activity.text}</div>
+                        <div class="activity-time">${activity.time}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+    
+    // Load stats on page load
+    loadDashboardStats();
+    
+    // Refresh stats every 30 seconds
+    setInterval(loadDashboardStats, 30000);
+</script>
+{% endblock %}

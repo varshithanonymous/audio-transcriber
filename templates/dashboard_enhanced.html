@@ -1,0 +1,809 @@
+{% extends "base_classic.html" %}
+
+{% block title %}Dashboard - LinguaVoice{% endblock %}
+{% block page_title %}Welcome Back, {{ user_name }}{% endblock %}
+{% block page_subtitle %}Your personalized language learning journey{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Progress Circle */
+    .progress-circle-container {
+        position: relative;
+        width: 200px;
+        height: 200px;
+    }
+    
+    .progress-circle {
+        transform: rotate(-90deg);
+    }
+    
+    .progress-circle-bg {
+        fill: none;
+        stroke: var(--color-parchment);
+        stroke-width: 12;
+    }
+    
+    .progress-circle-fill {
+        fill: none;
+        stroke: var(--color-accent);
+        stroke-width: 12;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 1s ease;
+    }
+    
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+    
+    .progress-value {
+        font-family: var(--font-serif);
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+    
+    .progress-label {
+        font-size: var(--text-sm);
+        color: var(--color-charcoal);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Welcome Card */
+    .welcome-card {
+        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        color: white;
+        border-radius: var(--radius-xl);
+        padding: var(--space-8);
+        margin-bottom: var(--space-8);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .welcome-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 400px;
+        height: 400px;
+        background: rgba(197, 153, 107, 0.1);
+        border-radius: 50%;
+    }
+    
+    .welcome-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .welcome-title {
+        font-family: var(--font-serif);
+        font-size: var(--text-4xl);
+        margin-bottom: var(--space-3);
+        color: white;
+    }
+    
+    .welcome-subtitle {
+        font-size: var(--text-lg);
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: var(--space-6);
+    }
+    
+    .quick-start-buttons {
+        display: flex;
+        gap: var(--space-4);
+        flex-wrap: wrap;
+    }
+    
+    .quick-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-3) var(--space-6);
+        background: white;
+        color: var(--color-primary);
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all var(--transition-base);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+    }
+    
+    .quick-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    
+    /* Dashboard Grid */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--space-8);
+        margin-bottom: var(--space-8);
+    }
+    
+    /* Learning Progress Card */
+    .learning-progress-card {
+        background: white;
+        border-radius: var(--radius-xl);
+        padding: var(--space-8);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-6);
+        padding-bottom: var(--space-4);
+        border-bottom: 2px solid var(--color-parchment);
+    }
+    
+    .card-title {
+        font-family: var(--font-serif);
+        font-size: var(--text-2xl);
+        color: var(--color-primary);
+    }
+    
+    .view-all-link {
+        color: var(--color-accent-dark);
+        font-weight: 600;
+        font-size: var(--text-sm);
+        text-decoration: none;
+    }
+    
+    /* Language Progress Bars */
+    .language-progress-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+    }
+    
+    .language-item {
+        padding: var(--space-4);
+        background: var(--color-parchment);
+        border-radius: var(--radius-md);
+        transition: all var(--transition-base);
+    }
+    
+    .language-item:hover {
+        background: var(--color-gray-200);
+        transform: translateX(5px);
+    }
+    
+    .language-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-3);
+    }
+    
+    .language-name {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        font-weight: 600;
+        color: var(--color-primary);
+    }
+    
+    .language-flag {
+        font-size: var(--text-2xl);
+    }
+    
+    .language-stats {
+        font-size: var(--text-sm);
+        color: var(--color-charcoal);
+    }
+    
+    .progress-bar-container {
+        width: 100%;
+        height: 12px;
+        background: white;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+        border-radius: var(--radius-md);
+        transition: width 1s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .progress-bar-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    /* Stats Cards Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-4);
+    }
+    
+    .stat-card {
+        padding: var(--space-5);
+        background: var(--color-parchment);
+        border-radius: var(--radius-lg);
+        border-left: 4px solid;
+        transition: all var(--transition-base);
+    }
+    
+    .stat-card:hover {
+        background: var(--color-gray-200);
+        transform: translateY(-3px);
+    }
+    
+    .stat-card:nth-child(1) { border-color: var(--color-primary); }
+    .stat-card:nth-child(2) { border-color: var(--color-accent); }
+    .stat-card:nth-child(3) { border-color: var(--color-secondary); }
+    .stat-card:nth-child(4) { border-color: var(--color-success); }
+    
+    .stat-icon {
+        font-size: var(--text-3xl);
+        margin-bottom: var(--space-2);
+    }
+    
+    .stat-value {
+        font-family: var(--font-serif);
+        font-size: var(--text-3xl);
+        font-weight: 700;
+        color: var(--color-primary);
+        margin-bottom: var(--space-1);
+    }
+    
+    .stat-label {
+        font-size: var(--text-sm);
+        color: var(--color-charcoal);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Daily Goal Card */
+    .daily-goal-card {
+        background: white;
+        border-radius: var(--radius-xl);
+        padding: var(--space-6);
+        box-shadow: var(--shadow-lg);
+        text-align: center;
+    }
+    
+    .goal-icon {
+        font-size: 3rem;
+        margin-bottom: var(--space-4);
+    }
+    
+    .goal-title {
+        font-family: var(--font-serif);
+        font-size: var(--text-xl);
+        color: var(--color-primary);
+        margin-bottom: var(--space-4);
+    }
+    
+    .goal-progress {
+        margin-bottom: var(--space-4);
+    }
+    
+    .goal-text {
+        font-size: var(--text-sm);
+        color: var(--color-charcoal);
+        margin-bottom: var(--space-4);
+    }
+    
+    /* Recent Activity Timeline */
+    .activity-timeline {
+        position: relative;
+        padding-left: var(--space-8);
+    }
+    
+    .activity-timeline::before {
+        content: '';
+        position: absolute;
+        left: 12px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--color-parchment);
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-bottom: var(--space-6);
+        padding-left: var(--space-4);
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -26px;
+        top: 4px;
+        width: 28px;
+        height: 28px;
+        background: white;
+        border: 3px solid var(--color-accent);
+        border-radius: 50%;
+    }
+    
+    .timeline-content {
+        background: var(--color-parchment);
+        padding: var(--space-4);
+        border-radius: var(--radius-md);
+        border-left: 3px solid var(--color-accent);
+    }
+    
+    .timeline-title {
+        font-weight: 600;
+        color: var(--color-primary);
+        margin-bottom: var(--space-1);
+    }
+    
+    .timeline-description {
+        font-size: var(--text-sm);
+        color: var(--color-charcoal);
+        margin-bottom: var(--space-2);
+    }
+    
+    .timeline-time {
+        font-size: var(--text-xs);
+        color: var(--color-charcoal);
+    }
+    
+    /* Achievements */
+    .achievements-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-4);
+    }
+    
+    .achievement-badge {
+        text-align: center;
+        padding: var(--space-4);
+        background: var(--color-parchment);
+        border-radius: var(--radius-md);
+        transition: all var(--transition-base);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .achievement-badge.locked {
+        opacity: 0.5;
+        filter: grayscale(1);
+    }
+    
+    .achievement-badge:not(.locked):hover {
+        transform: scale(1.05);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .achievement-icon {
+        font-size: 2.5rem;
+        margin-bottom: var(--space-2);
+    }
+    
+    .achievement-name {
+        font-size: var(--text-sm);
+        font-weight: 600;
+        color: var(--color-primary);
+        margin-bottom: var(--space-1);
+    }
+    
+    .achievement-description {
+        font-size: var(--text-xs);
+        color: var(--color-charcoal);
+    }
+    
+    /* Responsive */
+    @media (max-width: 968px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .achievements-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Welcome Banner -->
+<div class="welcome-card">
+    <div class="welcome-content">
+        <h1 class="welcome-title">🌟 Welcome back, {{ user_name }}!</h1>
+        <p class="welcome-subtitle">Ready to continue your language learning journey? Let's make today count!</p>
+        <div class="quick-start-buttons">
+            <a href="/transcription" class="quick-btn">
+                <span>🎙️</span>
+                <span>Start Speaking</span>
+            </a>
+            <a href="/vocabulary" class="quick-btn">
+                <span>📚</span>
+                <span>Review Words</span>
+            </a>
+            <a href="/learning" class="quick-btn">
+                <span>✨</span>
+                <span>Practice</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main Dashboard Grid -->
+<div class="dashboard-grid">
+    <!-- Left Column: Learning Progress -->
+    <div>
+        <!-- Language Progress -->
+        <div class="learning-progress-card">
+            <div class="card-header">
+                <h2 class="card-title">📊 Your Language Progress</h2>
+                <a href="/analytics" class="view-all-link">View Details →</a>
+            </div>
+            
+            <div class="language-progress-list" id="language-progress">
+                <div class="language-item">
+                    <div class="language-header">
+                        <div class="language-name">
+                            <span class="language-flag">🇬🇧</span>
+                            <span>English</span>
+                        </div>
+                        <div class="language-stats">
+                            <span id="en-words">0</span> words · <span id="en-level">Beginner</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="en-progress" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="language-item">
+                    <div class="language-header">
+                        <div class="language-name">
+                            <span class="language-flag">🇪🇸</span>
+                            <span>Spanish</span>
+                        </div>
+                        <div class="language-stats">
+                            <span id="es-words">0</span> words · <span id="es-level">Beginner</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="es-progress" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="language-item">
+                    <div class="language-header">
+                        <div class="language-name">
+                            <span class="language-flag">🇮🇳</span>
+                            <span>Hindi</span>
+                        </div>
+                        <div class="language-stats">
+                            <span id="hi-words">0</span> words · <span id="hi-level">Beginner</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="hi-progress" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div style="margin-top: var(--space-8);">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-value" id="total-xp">0</div>
+                    <div class="stat-label">Total XP</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">🔥</div>
+                    <div class="stat-value" id="streak">0</div>
+                    <div class="stat-label">Day Streak</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-value" id="total-words">0</div>
+                    <div class="stat-label">Words Learned</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">🎙️</div>
+                    <div class="stat-value" id="sessions">0</div>
+                    <div class="stat-label">Sessions</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity -->
+        <div class="learning-progress-card" style="margin-top: var(--space-8);">
+            <div class="card-header">
+                <h2 class="card-title">📅 Recent Activity</h2>
+            </div>
+            
+            <div class="activity-timeline" id="activity-timeline">
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-title">Loading your activity...</div>
+                        <div class="timeline-description">Please wait</div>
+                        <div class="timeline-time">Just now</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column: Daily Goal & Achievements -->
+    <div>
+        <!-- Daily Goal -->
+        <div class="daily-goal-card">
+            <div class="goal-icon">🎯</div>
+            <h3 class="goal-title">Today's Goal</h3>
+            
+            <div class="goal-progress">
+                <div class="progress-circle-container" style="margin: 0 auto;">
+                    <svg class="progress-circle" width="200" height="200">
+                        <circle class="progress-circle-bg" cx="100" cy="100" r="85"/>
+                        <circle class="progress-circle-fill" id="goal-circle" cx="100" cy="100" r="85" 
+                                stroke-dasharray="534.07" stroke-dashoffset="534.07"/>
+                    </svg>
+                    <div class="progress-text">
+                        <div class="progress-value" id="goal-percentage">0%</div>
+                        <div class="progress-label">Complete</div>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="goal-text">Learn <strong id="goal-remaining">10</strong> more words to reach your daily goal!</p>
+            
+            <a href="/learning" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                Continue Learning
+            </a>
+        </div>
+        
+        <!-- Achievements -->
+        <div class="learning-progress-card" style="margin-top: var(--space-6);">
+            <div class="card-header">
+                <h2 class="card-title">🏆 Achievements</h2>
+            </div>
+            
+            <div class="achievements-grid">
+                <div class="achievement-badge" id="badge-first-word">
+                    <div class="achievement-icon">🌟</div>
+                    <div class="achievement-name">First Word</div>
+                    <div class="achievement-description">Learn your first word</div>
+                </div>
+                
+                <div class="achievement-badge locked" id="badge-word-master">
+                    <div class="achievement-icon">📚</div>
+                    <div class="achievement-name">Word Master</div>
+                    <div class="achievement-description">Learn 100 words</div>
+                </div>
+                
+                <div class="achievement-badge locked" id="badge-streak">
+                    <div class="achievement-icon">🔥</div>
+                    <div class="achievement-name">On Fire</div>
+                    <div class="achievement-description">7-day streak</div>
+                </div>
+                
+                <div class="achievement-badge locked" id="badge-polyglot">
+                    <div class="achievement-icon">🌍</div>
+                    <div class="achievement-name">Polyglot</div>
+                    <div class="achievement-description">Learn in 3 languages</div>
+                </div>
+                
+                <div class="achievement-badge locked" id="badge-dedicated">
+                    <div class="achievement-icon">⏰</div>
+                    <div class="achievement-name">Dedicated</div>
+                    <div class="achievement-description">30-day streak</div>
+                </div>
+                
+                <div class="achievement-badge locked" id="badge-expert">
+                    <div class="achievement-icon">🎓</div>
+                    <div class="achievement-name">Expert</div>
+                    <div class="achievement-description">Master level</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load dashboard data
+    async function loadDashboardData() {
+        try {
+            const [statsRes, vocabRes] = await Promise.all([
+                fetch('/api/stats'),
+                fetch('/api/get_my_spoken_words')
+            ]);
+            
+            const statsData = await statsRes.json();
+            const vocabData = await vocabRes.json();
+            
+            const stats = statsData.stats || {};
+            
+            // Update stats
+            document.getElementById('total-xp').textContent = stats.total_xp || 0;
+            document.getElementById('streak').textContent = stats.current_streak || 0;
+            document.getElementById('total-words').textContent = vocabData.length;
+            document.getElementById('sessions').textContent = stats.total_transcripts || 0;
+            
+            // Update language progress
+            updateLanguageProgress(vocabData);
+            
+            // Update daily goal
+            updateDailyGoal(vocabData.length);
+            
+            // Update achievements
+            updateAchievements(stats, vocabData.length);
+            
+            // Update activity timeline
+            updateActivityTimeline(stats, vocabData);
+            
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+        }
+    }
+    
+    function updateLanguageProgress(vocabData) {
+        const langCounts = {
+            en: vocabData.filter(w => w.language === 'en').length,
+            es: vocabData.filter(w => w.language === 'es').length,
+            hi: vocabData.filter(w => w.language === 'hi').length
+        };
+        
+        const levels = {
+            0: 'Beginner',
+            10: 'Elementary',
+            25: 'Intermediate',
+            50: 'Advanced',
+            100: 'Expert',
+            200: 'Master'
+        };
+        
+        function getLevel(count) {
+            const thresholds = [200, 100, 50, 25, 10, 0];
+            for (let threshold of thresholds) {
+                if (count >= threshold) return levels[threshold];
+            }
+            return 'Beginner';
+        }
+        
+        // Update English
+        document.getElementById('en-words').textContent = langCounts.en;
+        document.getElementById('en-level').textContent = getLevel(langCounts.en);
+        document.getElementById('en-progress').style.width = Math.min(100, (langCounts.en / 100) * 100) + '%';
+        
+        // Update Spanish
+        document.getElementById('es-words').textContent = langCounts.es;
+        document.getElementById('es-level').textContent = getLevel(langCounts.es);
+        document.getElementById('es-progress').style.width = Math.min(100, (langCounts.es / 100) * 100) + '%';
+        
+        // Update Hindi
+        document.getElementById('hi-words').textContent = langCounts.hi;
+        document.getElementById('hi-level').textContent = getLevel(langCounts.hi);
+        document.getElementById('hi-progress').style.width = Math.min(100, (langCounts.hi / 100) * 100) + '%';
+    }
+    
+    function updateDailyGoal(totalWords) {
+        const dailyGoal = 10;
+        const todayWords = totalWords % dailyGoal; // Simplified - in production, track daily
+        const percentage = Math.min(100, (todayWords / dailyGoal) * 100);
+        
+        document.getElementById('goal-percentage').textContent = Math.round(percentage) + '%';
+        document.getElementById('goal-remaining').textContent = Math.max(0, dailyGoal - todayWords);
+        
+        // Update circle
+        const circle = document.getElementById('goal-circle');
+        const circumference = 534.07;
+        const offset = circumference - (percentage / 100) * circumference;
+        circle.style.strokeDashoffset = offset;
+    }
+    
+    function updateAchievements(stats, totalWords) {
+        // First Word
+        if (totalWords >= 1) {
+            document.getElementById('badge-first-word').classList.remove('locked');
+        }
+        
+        // Word Master
+        if (totalWords >= 100) {
+            document.getElementById('badge-word-master').classList.remove('locked');
+        }
+        
+        // Streak
+        if (stats.current_streak >= 7) {
+            document.getElementById('badge-streak').classList.remove('locked');
+        }
+        
+        // Dedicated
+        if (stats.current_streak >= 30) {
+            document.getElementById('badge-dedicated').classList.remove('locked');
+        }
+    }
+    
+    function updateActivityTimeline(stats, vocabData) {
+        const timeline = document.getElementById('activity-timeline');
+        const activities = [];
+        
+        if (stats.total_transcripts > 0) {
+            activities.push({
+                title: '🎙️ Transcription Session',
+                description: `Completed ${stats.total_transcripts} transcription sessions`,
+                time: 'Today'
+            });
+        }
+        
+        if (vocabData.length > 0) {
+            const recentWords = vocabData.slice(0, 3).map(w => w.word).join(', ');
+            activities.push({
+                title: '📚 New Words Learned',
+                description: `Added "${recentWords}" to vocabulary`,
+                time: 'Recently'
+            });
+        }
+        
+        if (stats.current_streak > 0) {
+            activities.push({
+                title: `🔥 ${stats.current_streak} Day Streak`,
+                description: 'Keep up the amazing work!',
+                time: 'Active'
+            });
+        }
+        
+        if (activities.length === 0) {
+            timeline.innerHTML = `
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-title">✨ Start Your Journey</div>
+                        <div class="timeline-description">Begin your first transcription session</div>
+                        <div class="timeline-time">Ready when you are</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            timeline.innerHTML = activities.map(activity => `
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-title">${activity.title}</div>
+                        <div class="timeline-description">${activity.description}</div>
+                        <div class="timeline-time">${activity.time}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+    
+    // Load data on page load
+    loadDashboardData();
+    
+    // Refresh every 30 seconds
+    setInterval(loadDashboardData, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,380 @@
+{% extends "base_sidebar.html" %}
+
+{% block title %}Vocabulary - LinguaVoice{% endblock %}
+{% block page_title %}Vocabulary Bank 📚{% endblock %}
+{% block page_subtitle %}Manage your dictionaries and validate new terms{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tabs-container {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    
+    .tab-btn {
+        padding: 0.75rem 1.5rem;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        color: #4b5563;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .tab-btn:hover {
+        background: #f9fafb;
+    }
+    
+    .tab-btn.active {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+    
+    .vocab-section {
+        display: none;
+    }
+    
+    .vocab-section.active {
+        display: block;
+    }
+    
+    .search-box {
+        width: 100%;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .search-box:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .vocab-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .word-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s;
+    }
+    
+    .word-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border-color: #3b82f6;
+    }
+    
+    .word-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .word-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    
+    .word-lang {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #6b7280;
+        letter-spacing: 0.05em;
+    }
+    
+    .word-meaning {
+        font-size: 0.9375rem;
+        color: #4b5563;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+    
+    .word-footer {
+        padding-top: 0.75rem;
+        border-top: 1px solid #f3f4f6;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    
+    .validation-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+    
+    .validation-column {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .column-header {
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .column-header.valid {
+        color: #10b981;
+    }
+    
+    .column-header.invalid {
+        color: #ef4444;
+    }
+    
+    .validation-item {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.9375rem;
+    }
+    
+    .validation-item.valid {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+    }
+    
+    .validation-item.invalid {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+    }
+    
+    @media (max-width: 768px) {
+        .validation-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Language Filter -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <div class="tabs-container" style="margin-bottom: 0;">
+        <button class="tab-btn active" onclick="switchTab('my-words')">My Words</button>
+        <button class="tab-btn" onclick="switchTab('oov')">OOV</button>
+        <button class="tab-btn" onclick="switchTab('discover')">Discover</button>
+    </div>
+    <select id="vocab-lang-filter" onchange="filterByLanguage()" style="padding: 0.625rem 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; font-size: 0.9375rem;">
+        <option value="all">All Languages</option>
+        <option value="en">English</option>
+        <option value="es">Spanish</option>
+        <option value="hi">Hindi</option>
+    </select>
+</div>
+
+<!-- My Words Section -->
+<div id="my-words" class="vocab-section active">
+    <input type="text" class="search-box" id="my-vocab-search" placeholder="Search your vocabulary...">
+    <div id="my-vocab-grid" class="vocab-grid">
+        <p style="color: #6b7280;">Loading...</p>
+    </div>
+</div>
+
+<!-- OOV Section -->
+<div id="oov" class="vocab-section">
+    <div style="background: white; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #e5e7eb;">
+        <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Out of Vocabulary</h3>
+        <p style="color: #6b7280;">Terms detected in speech that are not yet in your validated dictionary.</p>
+    </div>
+    <div id="oov-grid" class="vocab-grid"></div>
+</div>
+
+<!-- Discover Section -->
+<div id="discover" class="vocab-section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+            <h3 style="font-size: 1.25rem; font-weight: 700;">Discovery Mode</h3>
+            <p id="learn-status" style="color: #6b7280; font-size: 0.9375rem;">Generating stream...</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <select id="learn-lang-select" onchange="restartLearning()" style="padding: 0.625rem; border-radius: 0.5rem; border: 1px solid #e5e7eb;">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="hi">Hindi</option>
+            </select>
+            <button class="tab-btn" onclick="toggleLearningLoop()" id="learn-toggle-btn">Pause</button>
+        </div>
+    </div>
+    <div id="learn-grid" class="vocab-grid"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let myVocab = [];
+    let oovWords = [];
+    let learnLoopInterval = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadVocabulary();
+        loadOOV();
+    });
+
+    function switchTab(tabId) {
+        // Update buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        
+        // Update sections
+        document.querySelectorAll('.vocab-section').forEach(section => section.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        
+        // Handle learning loop
+        if (tabId === 'discover' && !learnLoopInterval) {
+            startLearningLoop();
+        } else if (tabId !== 'discover') {
+            stopLearningLoop();
+        }
+    }
+
+    async function loadVocabulary() {
+        try {
+            const res = await fetch('/api/get_vocabulary_bank_full');
+            myVocab = await res.json();
+            renderMyVocab();
+        } catch (e) {
+            console.error('Error loading vocab:', e);
+        }
+    }
+
+    function filterByLanguage() {
+        renderMyVocab();
+        loadOOV();
+    }
+    
+    function renderMyVocab() {
+        const query = document.getElementById('my-vocab-search').value.toLowerCase();
+        const langFilter = document.getElementById('vocab-lang-filter').value;
+        const container = document.getElementById('my-vocab-grid');
+        
+        let filtered = myVocab.filter(w => w.word.toLowerCase().includes(query));
+        if (langFilter !== 'all') {
+            filtered = filtered.filter(w => w.language === langFilter);
+        }
+        
+        if (filtered.length === 0) {
+            container.innerHTML = '<p style="color: #6b7280;">No words found.</p>';
+            return;
+        }
+        
+        container.innerHTML = filtered.map(w => `
+            <div class="word-card">
+                <div class="word-header">
+                    <h3 class="word-title">${w.word}</h3>
+                    <span class="word-lang">${w.language}</span>
+                </div>
+                <p class="word-meaning">${formatMeaning(w.meaning)}</p>
+                <div class="word-footer">Uses: ${w.frequency || 1}</div>
+            </div>
+        `).join('');
+    }
+
+    async function loadOOV() {
+        try {
+            const res = await fetch('/api/get_oov_words');
+            oovWords = await res.json();
+            const container = document.getElementById('oov-grid');
+            const langFilter = document.getElementById('vocab-lang-filter').value;
+            
+            let filtered = oovWords;
+            if (langFilter !== 'all') {
+                filtered = oovWords.filter(w => w.language === langFilter);
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="color: #6b7280;">No OOV words found.</p>';
+                return;
+            }
+            
+            container.innerHTML = filtered.map(w => `
+                <div class="word-card" style="border-left: 3px solid #f59e0b;">
+                    <h3 class="word-title">${w.word}</h3>
+                    <p style="font-size: 0.875rem; color: #6b7280; margin: 0.5rem 0;">Language: ${w.language.toUpperCase()}</p>
+                    <button class="tab-btn" onclick="addToVocab('${w.word}', '${w.language}')" style="margin-top: 0.75rem;">
+                        + Validate
+                    </button>
+                </div>
+            `).join('');
+        } catch (e) {
+            console.error('Error loading OOV:', e);
+        }
+    }
+
+    async function addToVocab(word, lang) {
+        await fetch(`/api/validate_word_manual?word=${word}&lang=${lang}`);
+        loadOOV();
+        loadVocabulary();
+    }
+
+    function startLearningLoop() {
+        fetchNewWords();
+        learnLoopInterval = setInterval(fetchNewWords, 3000);
+        document.getElementById('learn-toggle-btn').textContent = "Pause";
+    }
+
+    function stopLearningLoop() {
+        clearInterval(learnLoopInterval);
+        learnLoopInterval = null;
+    }
+
+    function toggleLearningLoop() {
+        if (learnLoopInterval) {
+            stopLearningLoop();
+            document.getElementById('learn-toggle-btn').textContent = "Resume";
+        } else {
+            startLearningLoop();
+        }
+    }
+
+    function restartLearning() {
+        document.getElementById('learn-grid').innerHTML = '<p>Refreshing...</p>';
+        stopLearningLoop();
+        startLearningLoop();
+    }
+
+    async function fetchNewWords() {
+        const lang = document.getElementById('learn-lang-select').value;
+        try {
+            const res = await fetch(`/api/auto_generate_vocab?lang=${lang}&count=5`);
+            const words = await res.json();
+            
+            document.getElementById('learn-grid').innerHTML = words.map(w => `
+                <div class="word-card" style="border-top: 3px solid #3b82f6;">
+                    <h3 class="word-title">${w.word}</h3>
+                    <p class="word-meaning">${formatMeaning(w.meaning)}</p>
+                </div>
+            `).join('');
+        } catch (e) {
+            console.error('Error fetching words:', e);
+        }
+    }
+
+    function formatMeaning(m) {
+        if (!m) return 'Loading definition...';
+        return m.split('|')[0];
+    }
+
+    document.getElementById('my-vocab-search').addEventListener('input', renderMyVocab);
+</script>
+{% endblock %}

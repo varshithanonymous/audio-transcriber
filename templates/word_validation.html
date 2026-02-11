@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+
+{% block title %}Word Validation - LinguaVoice{% endblock %}
+{% block page_title %}Word Validation{% endblock %}
+{% block page_subtitle %}Automatically validate and fetch meanings for your words{% endblock %}
+
+{% block content %}
+<!-- Control Panel -->
+<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-bold text-gray-900">Auto-Validation System</h3>
+            <p class="text-sm text-gray-500 mt-1">Continuously validates words and fetches meanings from online dictionary</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 text-sm">
+                <svg class="w-5 h-5 text-green-500 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+                <span id="validation-status" class="text-gray-600 font-semibold">Validating every 5 seconds...</span>
+            </div>
+            <button id="toggle-validation" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium text-sm">
+                ⏸ Pause Validation
+            </button>
+        </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="grid grid-cols-4 gap-4 mt-6">
+        <div class="bg-green-50 rounded-lg p-4">
+            <div class="flex items-center gap-2 mb-2">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-sm font-semibold text-green-900">Validated</span>
+            </div>
+            <p class="text-2xl font-bold text-green-600" id="validated-count">0</p>
+        </div>
+        
+        <div class="bg-amber-50 rounded-lg p-4">
+            <div class="flex items-center gap-2 mb-2">
+                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-sm font-semibold text-amber-900">Pending</span>
+            </div>
+            <p class="text-2xl font-bold text-amber-600" id="pending-count">0</p>
+        </div>
+        
+        <div class="bg-red-50 rounded-lg p-4">
+            <div class="flex items-center gap-2 mb-2">
+                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-sm font-semibold text-red-900">Invalid</span>
+            </div>
+            <p class="text-2xl font-bold text-red-600" id="invalid-count">0</p>
+        </div>
+        
+        <div class="bg-indigo-50 rounded-lg p-4">
+            <div class="flex items-center gap-2 mb-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                <span class="text-sm font-semibold text-indigo-900">Last Validated</span>
+            </div>
+            <p class="text-sm font-bold text-indigo-600" id="last-validated">None</p>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="bg-white rounded-xl border border-gray-200 mb-6">
+    <div class="border-b border-gray-200">
+        <nav class="flex gap-8 px-6" aria-label="Tabs">
+            <button onclick="switchTab('validated')" class="tab-btn py-4 px-1 border-b-2 border-green-600 font-semibold text-green-600 text-sm">
+                ✓ Validated Words
+            </button>
+            <button onclick="switchTab('pending')" class="tab-btn py-4 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 text-sm">
+                ⏳ Pending / Invalid
+            </button>
+        </nav>
+    </div>
+</div>
+
+<!-- Tab: Validated Words -->
+<div id="tab-validated" class="tab-content">
+    <!-- Language Filters -->
+    <div class="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+        <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-700">Filter by Language:</h3>
+            <div class="flex gap-2">
+                <button onclick="filterValidated('all')" class="lang-filter-validated px-4 py-2 rounded-lg font-medium text-sm transition bg-green-600 text-white" data-lang="all">
+                    All Languages
+                </button>
+                <button onclick="filterValidated('en')" class="lang-filter-validated px-4 py-2 rounded-lg font-medium text-sm transition bg-gray-100 text-gray-700 hover:bg-gray-200" data-lang="en">
+                    🇬🇧 English
+                </button>
+                <button onclick="filterValidated('hi')" class="lang-filter-validated px-4 py-2 rounded-lg font-medium text-sm transition bg-gray-100 text-gray-700 hover:bg-gray-200" data-lang="hi">
+                    🇮🇳 Hindi
+                </button>
+                <button onclick="filterValidated('es')" class="lang-filter-validated px-4 py-2 rounded-lg font-medium text-sm transition bg-gray-100 text-gray-700 hover:bg-gray-200" data-lang="es">
+                    🇪🇸 Spanish
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="validated-grid">
+        <div class="col-span-full text-center py-12 text-gray-400">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p class="font-medium">Loading validated words...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Pending/Invalid Words -->
+<div id="tab-pending" class="tab-content hidden">
+    <!-- Language Filters -->
+    <div class="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+        <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-700">Filter by Language:</h3>
+            <div class="flex gap-2">
+                <button onclick="filterPending('all')" class="lang-filter-pending px-4 py-2 rounded-lg font-medium text-sm transition bg-amber-600 text-white" data-lang="all">
+                    All Languages
+                </button>
+                <button onclick="filterPending('en')" class="lang-filter-pending px-4 py-2 rounded-lg font-medium text-sm transition bg-gray-100 text-gray-700 hover:bg-gray-200" data-lang="en">
+                    🇬🇧 English
+                </button>
+                <button onclick="filterPending('hi')" class="lang-filter-pending px-4 py-2 rounded-lg font-medium text-sm transition bg-gray-100 text-gray-700 hover:bg-gray-200" data-lang="hi">
+                    🇮🇳 Hindi
+                </button>
+                <button onclick="filterPending('es')" class="lang-filter-pending px-4 py-2 rounded-lg font-medium text-sm transition bg-gray-100 text-gray-700 hover:bg-gray-200" data-lang="es">
+                    🇪🇸 Spanish
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="pending-grid">
+        <div class="col-span-full text-center py-12 text-gray-400">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p class="font-medium">Loading pending words...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Word Detail Modal -->
+<div id="word-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h2 id="modal-word" class="text-3xl font-bold text-gray-900">Word</h2>
+                <p id="modal-lang" class="text-sm text-gray-500 mt-1"></p>
+            </div>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="border-t border-gray-200 pt-4">
+            <p id="modal-meaning" class="text-gray-700 leading-relaxed">Loading meaning...</p>
+        </div>
+        <div class="mt-4 flex gap-2">
+            <button onclick="retryValidation()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium text-sm">
+                🔄 Retry Validation
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let isValidating = true;
+    let validationInterval;
+    let currentWord = null;
+    let allWords = [];
+    
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('border-green-600', 'text-green-600', 'border-amber-600', 'text-amber-600');
+            btn.classList.add('border-transparent', 'text-gray-500');
+        });
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+        
+        if (tab === 'validated') {
+            event.target.classList.remove('border-transparent', 'text-gray-500');
+            event.target.classList.add('border-green-600', 'text-green-600');
+        } else {
+            event.target.classList.remove('border-transparent', 'text-gray-500');
+            event.target.classList.add('border-amber-600', 'text-amber-600');
+        }
+        
+        document.getElementById(`tab-${tab}`).classList.remove('hidden');
+    }
+    
+    async function loadWords() {
+        try {
+            const res = await fetch('/api/get_vocabulary_bank_full');
+            const words = await res.json();
+            allWords = words;
+            
+            // Separate validated and pending
+            validatedWords = words.filter(w => w.meaning && w.meaning.trim() !== '' && w.meaning !== 'None' && w.is_valid);
+            pendingWords = words.filter(w => !w.meaning || w.meaning.trim() === '' || w.meaning === 'None' || !w.is_valid);
+            
+            // Update counts
+            document.getElementById('validated-count').textContent = validatedWords.length;
+            document.getElementById('pending-count').textContent = pendingWords.filter(w => !w.is_valid || !w.meaning).length;
+            document.getElementById('invalid-count').textContent = pendingWords.filter(w => w.is_valid === false && w.meaning).length;
+            
+            // Display with current filters
+            filterValidated(selectedValidatedLang);
+            filterPending(selectedPendingLang);
+            
+        } catch (error) {
+            console.error('Error loading words:', error);
+        }
+    }
+    
+    function displayWords(words, gridId, colorScheme) {
+        const grid = document.getElementById(gridId);
+        
+        if (words.length === 0) {
+            grid.innerHTML = `
+                <div class="col-span-full text-center py-12 text-gray-400">
+                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                    </svg>
+                    <p class="font-medium">No ${colorScheme === 'green' ? 'validated' : 'pending'} words yet</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const colors = {
+            'green': {
+                'en': 'from-green-500 to-green-600',
+                'es': 'from-emerald-500 to-emerald-600',
+                'hi': 'from-teal-500 to-teal-600'
+            },
+            'amber': {
+                'en': 'from-amber-500 to-amber-600',
+                'es': 'from-orange-500 to-orange-600',
+                'hi': 'from-red-500 to-red-600'
+            }
+        };
+        
+        grid.innerHTML = words.map(w => {
+            const gradient = colors[colorScheme][w.language] || 'from-gray-500 to-gray-600';
+            const hasMeaning = w.meaning && w.meaning.trim() !== '' && w.meaning !== 'None';
+            const statusBadge = hasMeaning ? 
+                '<span class="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">✓ Validated</span>' :
+                '<span class="inline-block mt-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded">⏳ Pending</span>';
+            
+            return `
+                <div onclick="showWordDetails('${w.word}', '${w.language}', '${(w.meaning || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}', ${w.is_valid})" 
+                     class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg hover:border-${colorScheme}-300 transition cursor-pointer group">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <h3 class="text-xl font-bold text-gray-900 group-hover:text-${colorScheme}-600 transition">${w.word}</h3>
+                            ${statusBadge}
+                        </div>
+                        <div class="w-8 h-8 bg-gradient-to-br ${gradient} rounded-lg flex items-center justify-center text-white text-xs font-bold">
+                            ${w.language.toUpperCase()}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 text-sm">
+                        <div class="flex items-center gap-1">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="text-gray-600 text-xs">${w.frequency || 1} times</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    let selectedValidatedLang = 'all';
+    let selectedPendingLang = 'all';
+    let validatedWords = [];
+    let pendingWords = [];
+    let currentValidationIndex = 0;
+    
+    async function validatePendingWords() {
+        if (!isValidating) return;
+        
+        try {
+            // Get all pending words (no meaning or empty meaning)
+            const pending = allWords.filter(w => !w.meaning || w.meaning.trim() === '' || w.meaning === 'None');
+            
+            if (pending.length === 0) {
+                document.getElementById('validation-status').textContent = 'All words validated! ✓';
+                // Keep checking for new words
+                await loadWords();
+                return;
+            }
+            
+            // Cycle through pending words
+            if (currentValidationIndex >= pending.length) {
+                currentValidationIndex = 0;
+            }
+            
+            const word = pending[currentValidationIndex];
+            document.getElementById('validation-status').textContent = `Validating [${word.language.toUpperCase()}]: ${word.word}...`;
+            
+            try {
+                const res = await fetch(`/validate_word?word=${encodeURIComponent(word.word)}&lang=${word.language}`);
+                const data = await res.json();
+                
+                if (data.meaning && data.meaning.trim() !== '') {
+                    document.getElementById('last-validated').textContent = `${word.word} (${word.language.toUpperCase()})`;
+                    console.log(`[VALIDATED] ${word.language.toUpperCase()}: ${word.word} = ${data.meaning}`);
+                }
+            } catch (err) {
+                console.error(`Error validating ${word.word}:`, err);
+            }
+            
+            currentValidationIndex++;
+            
+            // Reload words every 5 validations to update the display
+            if (currentValidationIndex % 5 === 0) {
+                await loadWords();
+            }
+            
+            document.getElementById('validation-status').textContent = `Validating every 5 seconds... (${pending.length} pending)`;
+            
+        } catch (error) {
+            console.error('Error in validation loop:', error);
+        }
+    }
+    
+    function filterValidated(lang) {
+        selectedValidatedLang = lang;
+        
+        // Update button styles
+        document.querySelectorAll('.lang-filter-validated').forEach(btn => {
+            if (btn.dataset.lang === lang) {
+                btn.className = 'lang-filter-validated px-4 py-2 rounded-lg font-medium text-sm transition bg-green-600 text-white';
+            } else {
+                btn.className = 'lang-filter-validated px-4 py-2 rounded-lg font-medium text-sm transition bg-gray-100 text-gray-700 hover:bg-gray-200';
+            }
+        });
+        
+        // Filter and display
+        const filtered = lang === 'all' ? validatedWords : validatedWords.filter(w => w.language === lang);
+        displayWords(filtered, 'validated-grid', 'green');
+    }
+    
+    function filterPending(lang) {
+        selectedPendingLang = lang;
+        
+        // Update button styles
+        document.querySelectorAll('.lang-filter-pending').forEach(btn => {
+            if (btn.dataset.lang === lang) {
+                btn.className = 'lang-filter-pending px-4 py-2 rounded-lg font-medium text-sm transition bg-amber-600 text-white';
+            } else {
+                btn.className = 'lang-filter-pending px-4 py-2 rounded-lg font-medium text-sm transition bg-gray-100 text-gray-700 hover:bg-gray-200';
+            }
+        });
+        
+        // Filter and display
+        const filtered = lang === 'all' ? pendingWords : pendingWords.filter(w => w.language === lang);
+        displayWords(filtered, 'pending-grid', 'amber');
+    }
+    
+    function showWordDetails(word, lang, meaning, isValid) {
+        currentWord = { word, lang, meaning, isValid };
+        const modal = document.getElementById('word-modal');
+        const title = document.getElementById('modal-word');
+        const langEl = document.getElementById('modal-lang');
+        const body = document.getElementById('modal-meaning');
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        title.textContent = word;
+        langEl.textContent = `${lang.toUpperCase()} • ${isValid ? 'Valid' : 'Invalid'} Word`;
+        
+        if (meaning && meaning.trim() !== '' && meaning !== 'None') {
+            body.innerHTML = `<p class="text-gray-700">${meaning}</p>`;
+        } else {
+            body.innerHTML = '<div class="bg-amber-50 border border-amber-200 rounded-lg p-4"><p class="text-amber-800 font-semibold mb-1">⏳ Meaning Pending</p><p class="text-amber-700 text-sm">This word hasn\'t been validated yet. Click "Retry Validation" to fetch its meaning now.</p></div>';
+        }
+    }
+    
+    async function retryValidation() {
+        if (!currentWord) return;
+        
+        const body = document.getElementById('modal-meaning');
+        body.innerHTML = '<div class="flex items-center gap-2 text-indigo-600"><svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg><span>Validating...</span></div>';
+        
+        try {
+            const res = await fetch(`/validate_word?word=${encodeURIComponent(currentWord.word)}&lang=${currentWord.lang}`);
+            const data = await res.json();
+            
+            if (data.meaning && data.meaning.trim() !== '') {
+                body.innerHTML = `<p class="text-gray-700">${data.meaning}</p>`;
+                await loadWords(); // Reload to update the grids
+            } else {
+                body.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4"><p class="text-red-800 font-semibold mb-1">❌ Validation Failed</p><p class="text-red-700 text-sm">Could not fetch meaning for this word. It might not be in the dictionary or you might be offline.</p></div>';
+            }
+        } catch (error) {
+            body.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4"><p class="text-red-800 font-semibold mb-1">❌ Error</p><p class="text-red-700 text-sm">Could not validate word. Please check your internet connection.</p></div>';
+        }
+    }
+    
+    function closeModal() {
+        const modal = document.getElementById('word-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        currentWord = null;
+    }
+    
+    document.getElementById('word-modal').onclick = function(e) {
+        if (e.target === this) closeModal();
+    };
+    
+    document.getElementById('toggle-validation').onclick = function() {
+        isValidating = !isValidating;
+        this.textContent = isValidating ? '⏸ Pause Validation' : '▶ Resume Validation';
+        this.className = isValidating ? 
+            'px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium text-sm' :
+            'px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium text-sm';
+        document.getElementById('validation-status').textContent = isValidating ? 
+            'Validating every 5 seconds...' : 'Validation paused';
+    };
+    
+    // Initial load
+    loadWords();
+    
+    // Start validation loop
+    validationInterval = setInterval(() => {
+        validatePendingWords();
+    }, 5000);
+    
+    // Reload words every 10 seconds to show updates
+    setInterval(loadWords, 10000);
+</script>
+{% endblock %}
