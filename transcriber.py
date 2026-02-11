@@ -46,21 +46,31 @@ MODEL_PATHS = {
 
 models = {}
 recognizers = {}
-print("Loading Vosk models...", flush=True)
-for lang, path in MODEL_PATHS.items():
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Model directory not found for {lang}: {path}\nDownload model from: https://alphacephei.com/vosk/models")
-    try:
-        print(f"  Loading {lang.upper()} model from {path}...", flush=True)
-        m = vosk.Model(path)
-        models[lang] = m
-        rec = vosk.KaldiRecognizer(m, 16000)
-        rec.SetWords(True) # Enable word timestamps and confidence
-        recognizers[lang] = rec
-        print(f"  [OK] {lang.upper()} model loaded successfully", flush=True)
-    except Exception as e:
-        raise RuntimeError(f"Failed to load {lang} model from {path}: {e}\nMake sure the model files are properly extracted.")
-print(f"[OK] All {len(recognizers)} models loaded successfully!", flush=True)
+models_loaded = False
+
+def _load_models_task():
+    global models_loaded
+    print("Loading Vosk models in background...", flush=True)
+    for lang, path in MODEL_PATHS.items():
+        if not os.path.exists(path):
+            print(f"Warning: Model directory not found for {lang}: {path}", flush=True)
+            continue
+        try:
+            print(f"  Loading {lang.upper()} model from {path}...", flush=True)
+            m = vosk.Model(path)
+            models[lang] = m
+            rec = vosk.KaldiRecognizer(m, 16000)
+            rec.SetWords(True) 
+            recognizers[lang] = rec
+            print(f"  [OK] {lang.upper()} model loaded successfully", flush=True)
+        except Exception as e:
+            print(f"  [ERROR] Failed to load {lang.upper()} model: {e}", flush=True)
+    
+    models_loaded = True
+    print("[OK] All models loaded successfully!", flush=True)
+
+# Start loading thread immediately
+threading.Thread(target=_load_models_task, daemon=True).start()
 
 DB_FILE = "transcriptions.db"
 AUDIO_DIR = "audio_clips"
